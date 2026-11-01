@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:background="@color/app_background" android:orientation="vertical">
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/reviewEditorToolbar" android:layout_width="match_parent"
+        android:layout_height="64dp" android:background="@drawable/bg_map_toolbar"
+        app:navigationIcon="@drawable/ic_arrow_back" app:title="Mi reseña"
+        app:titleTextColor="@color/app_text_primary" />
+    <ScrollView android:layout_width="match_parent" android:layout_height="match_parent"
+        android:fillViewport="true">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical" android:padding="20dp">
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="¿Cómo fue tu experiencia?" android:textColor="@color/app_text_primary"
+                android:textSize="22sp" android:textStyle="bold" />
+            <TextView android:id="@+id/reviewStarsLabel"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="18dp" android:text="0 de 5 estrellas"
+                android:textColor="@color/app_text_secondary" />
+            <RatingBar android:id="@+id/reviewRatingBar"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:layout_marginTop="8dp" android:numStars="5" android:rating="0"
+                android:stepSize="1" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnZeroStars"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Calificar con 0 estrellas" />
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="20dp" android:hint="Comentario (opcional)"
+                app:boxBackgroundMode="outline" app:boxCornerRadiusTopStart="12dp"
+                app:boxCornerRadiusTopEnd="12dp" app:boxCornerRadiusBottomStart="12dp"
+                app:boxCornerRadiusBottomEnd="12dp" app:counterEnabled="true"
+                app:counterMaxLength="2000">
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/reviewCommentInput"
+                    android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:gravity="top" android:inputType="textCapSentences|textMultiLine"
+                    android:maxLength="2000" android:minLines="4" />
+            </com.google.android.material.textfield.TextInputLayout>
+            <ImageView android:id="@+id/reviewSelectedImage"
+                android:layout_width="match_parent" android:layout_height="180dp"
+                android:layout_marginTop="16dp" android:contentDescription="Imagen de la reseña"
+                android:scaleType="centerCrop" android:visibility="gone" />
+            <com.google.android.material.button.MaterialButton android:id="@+id/btnSelectReviewImage"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="14dp" android:text="Añadir una foto" />
+            <com.google.android.material.button.MaterialButton android:id="@+id/btnRemoveReviewImage"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:text="Quitar foto" android:visibility="gone" />
+            <com.google.android.material.button.MaterialButton android:id="@+id/btnSaveReview"
+                android:layout_width="match_parent" android:layout_height="52dp"
+                android:layout_marginTop="24dp" android:text="Publicar reseña"
+                app:cornerRadius="14dp" />
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

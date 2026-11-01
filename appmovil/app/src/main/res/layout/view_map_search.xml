@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="52dp"
+    app:cardBackgroundColor="@color/white"
+    app:cardCornerRadius="18dp"
+    app:cardElevation="5dp"
+    app:strokeColor="@color/app_border"
+    app:strokeWidth="1dp">
+    <EditText
+        android:id="@+id/etMapSearch"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@android:color/transparent"
+        android:drawableStart="@android:drawable/ic_menu_search"
+        android:drawablePadding="10dp"
+        android:hint="@string/map_search_hint"
+        android:imeOptions="actionSearch"
+        android:importantForAutofill="no"
+        android:inputType="text"
+        android:paddingHorizontal="16dp"
+        android:singleLine="true"
+        android:textColor="@color/app_text_primary"
+        android:textColorHint="#94A3B8"
+        android:textSize="15sp"
+        app:drawableTint="@color/app_primary" />
+</com.google.android.material.card.MaterialCardView>

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.button.MaterialButtonToggleGroup xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/searchModeGroup"
+    android:layout_width="match_parent"
+    android:layout_height="44dp"
+    app:checkedButton="@id/btnSearchPlaces"
+    app:singleSelection="true"
+    app:selectionRequired="true">
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnSearchPlaces"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:text="Lugares de la app"
+        android:textAllCaps="false"
+        android:textSize="12sp"
+        app:cornerRadius="14dp" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnSearchAvenues"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:text="Avenidas y calles"
+        android:textAllCaps="false"
+        android:textSize="12sp"
+        app:cornerRadius="14dp" />
+</com.google.android.material.button.MaterialButtonToggleGroup>

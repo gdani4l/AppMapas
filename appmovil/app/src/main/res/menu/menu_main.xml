@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/action_profile"
+        android:icon="@drawable/ic_person_circle"
+        android:title="@string/menu_profile"
+        app:iconTint="@null"
+        app:showAsAction="always" />
+    <item android:id="@+id/action_reports" android:title="@string/menu_reports" app:showAsAction="never" />
+    <item android:id="@+id/action_notifications" android:title="@string/menu_notifications" app:showAsAction="never" />
+    <item android:id="@+id/action_recommendations" android:title="@string/menu_recommendations" app:showAsAction="never" />
+    <item android:id="@+id/action_settings" android:title="@string/menu_settings" app:showAsAction="never" />
+    <item android:id="@+id/action_logout" android:title="@string/menu_logout" app:showAsAction="never" />
+</menu>

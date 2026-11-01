@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:background="@color/app_background" android:orientation="vertical">
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/reviewsToolbar" android:layout_width="match_parent"
+        android:layout_height="64dp" android:background="@drawable/bg_map_toolbar"
+        app:navigationIcon="@drawable/ic_arrow_back" app:title="Reseñas"
+        app:titleTextColor="@color/app_text_primary" />
+    <ScrollView android:layout_width="match_parent" android:layout_height="match_parent">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical" android:padding="18dp">
+            <TextView android:id="@+id/reviewsPlaceName"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:textColor="@color/app_text_primary" android:textSize="23sp"
+                android:textStyle="bold" />
+            <TextView android:id="@+id/reviewsSummary"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="8dp" android:textColor="@color/app_primary_dark"
+                android:textSize="16sp" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnReviewFromList" android:layout_width="match_parent"
+                android:layout_height="48dp" android:layout_marginTop="12dp"
+                android:text="Escribir mi reseña" app:cornerRadius="14dp" />
+            <LinearLayout android:id="@+id/reviewsList"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="8dp" android:orientation="vertical" />
+            <TextView android:id="@+id/reviewsEmpty"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="20dp" android:text="Todavía no hay reseñas."
+                android:textColor="@color/app_text_secondary" android:visibility="gone" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnMoreReviews"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="16dp" android:text="Cargar más reseñas"
+                android:visibility="gone" />
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

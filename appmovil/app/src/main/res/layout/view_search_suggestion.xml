@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?attr/selectableItemBackground"
+    android:minHeight="58dp"
+    android:orientation="vertical"
+    android:paddingStart="18dp"
+    android:paddingTop="9dp"
+    android:paddingEnd="18dp"
+    android:paddingBottom="9dp">
+    <TextView
+        android:id="@+id/tvSuggestionTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textColor="@color/app_text_primary"
+        android:textSize="15sp"
+        android:textStyle="bold" />
+    <TextView
+        android:id="@+id/tvSuggestionSubtitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textColor="@color/app_text_secondary"
+        android:textSize="12sp" />
+</LinearLayout>
