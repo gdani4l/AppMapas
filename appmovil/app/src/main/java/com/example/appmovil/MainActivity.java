@@ -2,9 +2,13 @@ package com.example.appmovil;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.BitmapFactory;
+import android.graphics.PointF;
 import android.location.Location;
 import android.net.Uri;
 import android.os.Bundle;
@@ -22,6 +26,7 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.view.inputmethod.EditorInfo;
 import android.widget.TextView;
+import android.view.ViewGroup;
 
 import androidx.activity.EdgeToEdge;
 import androidx.activity.result.ActivityResultLauncher;
@@ -39,6 +44,7 @@ import com.google.android.gms.location.Priority;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.snackbar.Snackbar;
 
 import org.json.JSONArray;
@@ -80,6 +86,8 @@ import okhttp3.Request;
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback {
 
+    static final String EXTRA_MAP_FOCUS_TYPE = "mapFocusType";
+    static final String EXTRA_MAP_FOCUS_JSON = "mapFocusJson";
     private static final LatLng LIMA = new LatLng(-12.0464, -77.0428);
     private static final float DEFAULT_ZOOM = 16f;
     private static final String OSM_STYLE_URI = "https://tiles.openfreemap.org/styles/liberty";
@@ -93,6 +101,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private MapMarkerRenderer markers;
     private PlaceDetailSheet activeDetailSheet;
     private final Map<Long, Place> visiblePlaces = new HashMap<>();
+    private final Map<Long, SafetyReport> visibleReports = new HashMap<>();
     private boolean mapStyleReady;
     private FusedLocationProviderClient fusedLocationClient;
     private ExecutorService searchExecutor;
@@ -100,6 +109,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private final Handler uiHandler = new Handler(Looper.getMainLooper());
     private EditText mapSearch;
     private ImageView toolbarAvatar;
+    private MaterialToolbar topToolbar;
     private LinearLayout searchSuggestions;
     private Runnable pendingSearch;
     private Runnable pendingPlacesLoad;
@@ -109,6 +119,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private boolean searchAvenues;
     private final Set<String> selectedTypes = new LinkedHashSet<>();
     private int placesRequestVersion;
+    private int reportsRequestVersion;
     private int profileImageVersion;
     private String avatarRequestedUrl = "";
     private Bitmap avatarBitmap;
@@ -117,6 +128,36 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private double loadedSpan;
     private String loadedFilterKey;
     private long lastPlacesErrorAt;
+    private double loadedReportLatitude = Double.NaN;
+    private double loadedReportLongitude;
+    private double loadedReportSpan;
+    private LatLng currentUserPosition;
+    private SimulatedRouteView simulatedRouteView;
+    private boolean simulatingRoute;
+    private final List<LatLng> routePoints = new ArrayList<>();
+    private LatLng lastRecordedRealPoint;
+    private long lastRealRecordAt;
+    private long lastAlertQueryAt;
+    private LatLng lastAlertQueryPoint;
+    private int alertRequestVersion;
+    private final Runnable sampleLocation = new Runnable() {
+        @Override public void run() {
+            if (!simulatingRoute && hasLocationPermission()) {
+                try {
+                    fusedLocationClient.getCurrentLocation(Priority.PRIORITY_BALANCED_POWER_ACCURACY, null)
+                            .addOnSuccessListener(location -> {
+                                if (location == null || simulatingRoute) return;
+                                LatLng point = new LatLng(location.getLatitude(), location.getLongitude());
+                                currentUserPosition = point;
+                                if (markers != null) markers.setLocation(point);
+                                recordRealPoint(point);
+                                loadNearbyReportsForAlerts(point,false);
+                            });
+                } catch (SecurityException ignored) { }
+            }
+            uiHandler.postDelayed(this, 30000L);
+        }
+    };
     private org.maplibre.android.maps.MapLibreMap.OnMapClickListener placePointListener;
     private Snackbar placePointPrompt;
 
@@ -146,6 +187,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 Snackbar.make(findViewById(R.id.main), R.string.place_added, Snackbar.LENGTH_LONG).show();
             });
 
+    private final ActivityResultLauncher<Intent> addReportLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(), result -> {
+                if (result.getResultCode() != Activity.RESULT_OK) return;
+                loadedReportLatitude = Double.NaN;
+                loadVisibleReports(true);
+                Snackbar.make(findViewById(R.id.main), "Reporte publicado correctamente.", Snackbar.LENGTH_LONG).show();
+            });
+
     private final ActivityResultLauncher<String[]> locationPermissionLauncher =
             registerForActivityResult(
                     new ActivityResultContracts.RequestMultiplePermissions(),
@@ -164,6 +213,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         }
                     }
             );
+    private final ActivityResultLauncher<String> notificationPermissionLauncher = registerForActivityResult(
+            new ActivityResultContracts.RequestPermission(), granted -> { if (granted) loadVisibleReports(true); });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -208,9 +259,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private void configureToolbar() {
         MaterialToolbar toolbar = findViewById(R.id.topAppBar);
+        topToolbar = toolbar;
         toolbar.setTitle(R.string.map_title);
         toolbar.setSubtitle(R.string.map_subtitle);
         toolbar.inflateMenu(R.menu.menu_main);
+        toolbar.getMenu().findItem(R.id.action_admin).setVisible("ADMIN".equalsIgnoreCase(new SessionManager(this).getRole()));
         FrameLayout avatarAction = new FrameLayout(this);
         avatarAction.setPadding(dp(4), dp(4), dp(4), dp(4));
         toolbarAvatar = new ImageView(this);
@@ -240,6 +293,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 startActivity(intent);
                 return true;
             }
+
+            if (item.getItemId() == R.id.action_reports) { openFeed(FeedActivity.MODE_REPORTS); return true; }
+            if (item.getItemId() == R.id.action_notifications) { openFeed(FeedActivity.MODE_NOTIFICATIONS); return true; }
+            if (item.getItemId() == R.id.action_recommendations) { openFeed(FeedActivity.MODE_RECOMMENDATIONS); return true; }
+            if (item.getItemId() == R.id.action_history) { openFeed(FeedActivity.MODE_HISTORY); return true; }
+            if (item.getItemId() == R.id.action_admin) { startActivity(new Intent(this,AdminActivity.class)); return true; }
 
             showComingSoon();
             return true;
@@ -271,6 +330,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                                 session.updateProfile(session.getUserName(),
                                         json.optString("correo", ""),
                                         json.optString("imagenPerfilUrl", ""));
+                                session.setRole(json.optString("rol","USUARIO"));
+                                if(topToolbar!=null) topToolbar.getMenu().findItem(R.id.action_admin).setVisible("ADMIN".equalsIgnoreCase(session.getRole()));
                                 updateProfileAvatar();
                             } catch (Exception ignored) { }
                         });
@@ -326,7 +387,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     private void configurePlaceholderActions() {
-        findViewById(R.id.btnReportZone).setOnClickListener(view -> showComingSoon());
+        findViewById(R.id.btnReportZone).setOnClickListener(view -> beginAddReport());
         findViewById(R.id.btnAddPlace).setOnClickListener(view -> beginAddPlace());
         findViewById(R.id.chipNearby).setOnClickListener(view -> selectAllTypes());
         findViewById(R.id.chipHotels).setOnClickListener(view -> toggleType("HOTEL"));
@@ -337,6 +398,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             categoryLauncher.launch(intent);
         });
         findViewById(R.id.fabMyLocation).setOnClickListener(view -> requestOrCenterLocation());
+        simulatedRouteView = new SimulatedRouteView(this);
+        ((FrameLayout) findViewById(R.id.simulationHost)).addView(simulatedRouteView,
+                new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT));
+        findViewById(R.id.btnSimulateRoute).setOnClickListener(view -> toggleSimulation());
         /*findViewById(R.id.tvOsmAttribution).setOnClickListener(view ->
                 startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(OSM_ATTRIBUTION_URL)))
         );*/
@@ -389,15 +455,59 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             mapLibreMap.addOnCameraIdleListener(this::schedulePlacesLoad);
             mapLibreMap.addOnMapClickListener(point -> {
                 if (placePointListener != null || markers == null) return false;
+                // Los marcadores son más específicos que las áreas: si un lugar está
+                // dentro de una zona de riesgo, el toque sobre su icono abre el lugar.
                 Long id = markers.placeAt(point);
                 Place place = id == null ? null : visiblePlaces.get(id);
-                if (place == null) return false;
-                showPlaceDetail(place);
-                return true;
+                if (place != null) {
+                    showPlaceDetail(place);
+                    return true;
+                }
+                List<Long> reportIds = markers.reportsAt(point);
+                if (!reportIds.isEmpty()) {
+                    showReportSelection(reportIds);
+                    return true;
+                }
+                return false;
             });
             loadVisiblePlaces(false);
-            requestOrCenterLocation();
+            loadVisibleReports(false);
+            if (!handleMapFocusIntent()) requestOrCenterLocation();
         });
+    }
+
+    @Override protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        handleMapFocusIntent();
+    }
+
+    private boolean handleMapFocusIntent() {
+        if (!mapStyleReady || mapLibreMap == null || getIntent() == null) return false;
+        String payload=getIntent().getStringExtra(EXTRA_MAP_FOCUS_JSON);
+        String type=getIntent().getStringExtra(EXTRA_MAP_FOCUS_TYPE);
+        if(payload==null || type==null)return false;
+        getIntent().removeExtra(EXTRA_MAP_FOCUS_JSON);
+        getIntent().removeExtra(EXTRA_MAP_FOCUS_TYPE);
+        try{
+            JSONObject json=new JSONObject(payload);
+            if("LUGAR".equals(type)){
+                Place place=Place.fromJson(json);
+                LatLng point=new LatLng(place.latitude,place.longitude);
+                mapLibreMap.animateCamera(CameraUpdateFactory.newLatLngZoom(point,17f));
+                uiHandler.postDelayed(()->{if(!isFinishing()&&!isDestroyed())showPlaceDetail(place);},350L);
+                return true;
+            }
+            SafetyReport report=SafetyReport.fromJson(json);
+            LatLng point=new LatLng(report.latitude,report.longitude);
+            mapLibreMap.animateCamera(CameraUpdateFactory.newLatLngZoom(point,17f));
+            uiHandler.postDelayed(()->{if(!isFinishing()&&!isDestroyed())
+                ReportDetailSheet.show(this,report,()->loadVisibleReports(true));},350L);
+            return true;
+        }catch(Exception error){
+            Snackbar.make(findViewById(R.id.main),"No se pudo abrir el contenido en el mapa.",Snackbar.LENGTH_LONG).show();
+            return false;
+        }
     }
 
     private void selectAllTypes() {
@@ -425,7 +535,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private void schedulePlacesLoad() {
         if (pendingPlacesLoad != null) uiHandler.removeCallbacks(pendingPlacesLoad);
-        pendingPlacesLoad = () -> loadVisiblePlaces(false);
+        pendingPlacesLoad = () -> {
+            loadVisiblePlaces(false);
+            loadVisibleReports(false);
+        };
         uiHandler.postDelayed(pendingPlacesLoad, PLACES_DEBOUNCE_MS);
     }
 
@@ -485,6 +598,45 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         if (markers != null) markers.setPlaces(places);
     }
 
+    void refreshMapContent() { loadedLatitude=Double.NaN; loadedReportLatitude=Double.NaN; loadVisiblePlaces(true); loadVisibleReports(true); }
+
+    private void loadVisibleReports(boolean force) {
+        if (!mapStyleReady || mapLibreMap == null || mapLibreMap.getCameraPosition().target == null) return;
+        LatLng center = mapLibreMap.getCameraPosition().target;
+        double span = Math.max(0.01, Math.min(2.0,
+                0.02 * Math.pow(2, 16 - mapLibreMap.getCameraPosition().zoom)));
+        if (!force && !Double.isNaN(loadedReportLatitude)
+                && Math.abs(center.getLatitude() - loadedReportLatitude) < loadedReportSpan * 0.5
+                && Math.abs(center.getLongitude() - loadedReportLongitude) < loadedReportSpan * 0.5
+                && span <= loadedReportSpan) return;
+        loadedReportLatitude = center.getLatitude();
+        loadedReportLongitude = center.getLongitude();
+        loadedReportSpan = span;
+        String endpoint = ApiConfig.REPORTS_BASE_URL
+                + "?sur=" + (center.getLatitude() - span)
+                + "&norte=" + (center.getLatitude() + span)
+                + "&oeste=" + (center.getLongitude() - span)
+                + "&este=" + (center.getLongitude() + span);
+        int version = ++reportsRequestVersion;
+        ApiClient.getAuthorized(endpoint, new SessionManager(this).getToken(), new ApiClient.ApiCallback() {
+            @Override public void onSuccess(String response) {
+                runOnUiThread(() -> {
+                    if (version != reportsRequestVersion || isFinishing()) return;
+                    try {
+                        JSONArray json = new JSONArray(response);
+                        List<SafetyReport> reports = new ArrayList<>();
+                        for (int i = 0; i < json.length(); i++) reports.add(SafetyReport.fromJson(json.getJSONObject(i)));
+                        visibleReports.clear();
+                        for (SafetyReport report : reports) visibleReports.put(report.id, report);
+                        if (markers != null) markers.setReports(reports);
+                        notifyNearbyReports(reports);
+                    } catch (Exception ignored) { loadedReportLatitude = Double.NaN; }
+                });
+            }
+            @Override public void onError(String error) { runOnUiThread(() -> loadedReportLatitude = Double.NaN); }
+        });
+    }
+
     private int dp(int value) {
         return Math.round(value * getResources().getDisplayMetrics().density);
     }
@@ -498,6 +650,34 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private void showPlaceDetail(Place place) {
         activeDetailSheet = PlaceDetailSheet.show(this, place);
+    }
+
+    private void showReportSelection(List<Long> ids) {
+        List<SafetyReport> reports=new ArrayList<>();
+        for(Long id:ids){SafetyReport report=visibleReports.get(id);if(report!=null)reports.add(report);}
+        if(reports.isEmpty())return;
+        if(reports.size()==1){ReportDetailSheet.show(this,reports.get(0),()->loadVisibleReports(true));return;}
+        BottomSheetDialog dialog=new BottomSheetDialog(this);
+        View content=getLayoutInflater().inflate(R.layout.sheet_report_selection,null);
+        LinearLayout list=content.findViewById(R.id.reportSelectionList);
+        for(SafetyReport report:reports){
+            View option=getLayoutInflater().inflate(R.layout.view_report_option,list,false);
+            ((TextView)option.findViewById(R.id.reportOptionTitle)).setText(report.eventType);
+            ((TextView)option.findViewById(R.id.reportOptionMeta)).setText(
+                    (report.dangerLevel.equals("ALTO")?"Peligro alto":"Peligro medio")+" · radio "+report.radiusMeters+" m");
+            ((TextView)option.findViewById(R.id.reportOptionDescription)).setText(
+                    report.description+"\nPublicado por "+report.author);
+            option.findViewById(R.id.reportOptionAccent).setBackgroundColor(
+                    report.dangerLevel.equals("ALTO")?0xFFDC2626:0xFFF97316);
+            option.setOnClickListener(v->{dialog.dismiss();ReportDetailSheet.show(this,report,()->loadVisibleReports(true));});
+            list.addView(option);
+        }
+        content.findViewById(R.id.btnCloseReportSelection).setOnClickListener(v->dialog.dismiss());
+        dialog.setContentView(content);dialog.show();
+        View bottom=dialog.findViewById(com.google.android.material.R.id.design_bottom_sheet);
+        if(bottom!=null){bottom.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+            com.google.android.material.bottomsheet.BottomSheetBehavior.from(bottom).setState(
+                    com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED);}
     }
 
     private void beginAddPlace() {
@@ -516,6 +696,27 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         placePointListener = point -> {
             stopPickingPlace();
             addPlaceLauncher.launch(new Intent(this, NuevoLugarActivity.class)
+                    .putExtra("latitude", point.getLatitude())
+                    .putExtra("longitude", point.getLongitude()));
+            return true;
+        };
+        mapLibreMap.addOnMapClickListener(placePointListener);
+    }
+
+    private void beginAddReport() {
+        if (new SessionManager(this).getToken().isEmpty()) {
+            Snackbar.make(findViewById(R.id.main), "Inicia sesión para publicar un reporte.", Snackbar.LENGTH_LONG).show();
+            return;
+        }
+        if (!mapStyleReady || mapLibreMap == null) return;
+        if (placePointListener != null) { stopPickingPlace(); return; }
+        placePointPrompt = Snackbar.make(findViewById(R.id.main),
+                "Toca el centro de la zona que deseas reportar.", Snackbar.LENGTH_INDEFINITE)
+                .setAction("Cancelar", view -> stopPickingPlace());
+        placePointPrompt.show();
+        placePointListener = point -> {
+            stopPickingPlace();
+            addReportLauncher.launch(new Intent(this, NuevoReporteActivity.class)
                     .putExtra("latitude", point.getLatitude())
                     .putExtra("longitude", point.getLongitude()));
             return true;
@@ -595,9 +796,165 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     private void centerMap(Location location) {
+        if (simulatingRoute) return;
         LatLng currentPosition = new LatLng(location.getLatitude(), location.getLongitude());
+        currentUserPosition = currentPosition;
         if (markers != null) markers.setLocation(currentPosition);
         mapLibreMap.animateCamera(CameraUpdateFactory.newLatLngZoom(currentPosition, DEFAULT_ZOOM));
+        recordRealPoint(currentPosition);
+        loadNearbyReportsForAlerts(currentPosition,true);
+    }
+
+    private void toggleSimulation() {
+        if (!mapStyleReady || mapLibreMap == null) return;
+        com.google.android.material.button.MaterialButton button = findViewById(R.id.btnSimulateRoute);
+        if (simulatingRoute) {
+            stopSimulation();
+            requestOrCenterLocation();
+            return;
+        }
+        simulatingRoute = true;
+        // La simulacion conserva un historial propio. Se reinicia en cada prueba para que
+        // puedan comprobarse nuevamente los tres niveles sin duplicar alertas reales.
+        getSharedPreferences("nearby_security_alerts_simulated", MODE_PRIVATE)
+                .edit().clear().apply();
+        routePoints.clear();
+        button.setText("Terminar simulación");
+        simulatedRouteView.start((x, y, first) -> {
+            LatLng point = mapLibreMap.getProjection().fromScreenLocation(new PointF(x, y));
+            if (routePoints.isEmpty() || distanceMeters(routePoints.get(routePoints.size() - 1), point) >= 12) {
+                routePoints.add(point);
+            }
+            currentUserPosition = point;
+            if (markers != null) markers.setLocation(point);
+            notifyNearbyReports(new ArrayList<>(visibleReports.values()));
+            loadNearbyReportsForAlerts(point,false);
+        });
+        Snackbar.make(findViewById(R.id.main),
+                "Desliza el dedo por el mapa para dibujar tu recorrido", Snackbar.LENGTH_LONG).show();
+    }
+
+    private void stopSimulation() {
+        simulatingRoute = false;
+        simulatedRouteView.stop();
+        ((com.google.android.material.button.MaterialButton) findViewById(R.id.btnSimulateRoute))
+                .setText("Simular recorrido");
+        if (!routePoints.isEmpty()) sendRoute(new ArrayList<>(routePoints), true);
+        routePoints.clear();
+    }
+
+    private float distanceMeters(LatLng a, LatLng b) {
+        float[] result = new float[1];
+        Location.distanceBetween(a.getLatitude(), a.getLongitude(),
+                b.getLatitude(), b.getLongitude(), result);
+        return result[0];
+    }
+
+    private void recordRealPoint(LatLng point) {
+        long now = SystemClock.elapsedRealtime();
+        if (lastRecordedRealPoint != null &&
+                (now - lastRealRecordAt < 30000L || distanceMeters(lastRecordedRealPoint, point) < 30)) return;
+        lastRecordedRealPoint = point;
+        lastRealRecordAt = now;
+        sendRoute(java.util.Collections.singletonList(point), false);
+    }
+
+    private void sendRoute(List<LatLng> points, boolean simulated) {
+        if (points.isEmpty()) return;
+        String token = new SessionManager(this).getToken();
+        if (token.isEmpty()) return;
+        for (int start = 0; start < points.size(); start += 200) {
+            JSONArray array = new JSONArray();
+            int end = Math.min(start + 200, points.size());
+            for (int i = start; i < end; i++) {
+                JSONObject point = new JSONObject();
+                try {
+                    point.put("latitud", points.get(i).getLatitude());
+                    point.put("longitud", points.get(i).getLongitude());
+                    array.put(point);
+                } catch (Exception ignored) { }
+            }
+            JSONObject body = new JSONObject();
+            try {
+                body.put("puntos", array);
+                body.put("simulado", false);
+            } catch (Exception ignored) { continue; }
+            ApiClient.postAuthorized(ApiConfig.ip + "/api/recorridos", token, body,
+                    new ApiClient.ApiCallback() {
+                        @Override public void onSuccess(String response) { }
+                        @Override public void onError(String error) {
+                            runOnUiThread(() -> Snackbar.make(findViewById(R.id.main),
+                                    "No se pudo guardar el recorrido: " + error,
+                                    Snackbar.LENGTH_LONG).show());
+                        }
+                    });
+        }
+    }
+
+    private void openFeed(String mode) {
+        LatLng point=currentUserPosition!=null?currentUserPosition:(mapLibreMap==null?LIMA:mapLibreMap.getCameraPosition().target);
+        startActivity(new Intent(this,FeedActivity.class).putExtra(FeedActivity.EXTRA_MODE,mode)
+                .putExtra("latitude",point.getLatitude()).putExtra("longitude",point.getLongitude()));
+    }
+
+    private void loadNearbyReportsForAlerts(LatLng point,boolean force){
+        if(point==null)return;long now=SystemClock.elapsedRealtime();
+        if(!force&&lastAlertQueryPoint!=null&&now-lastAlertQueryAt<10000L
+                &&distanceMeters(lastAlertQueryPoint,point)<150)return;
+        lastAlertQueryAt=now;lastAlertQueryPoint=point;double span=0.006;
+        String endpoint=ApiConfig.REPORTS_BASE_URL+"?sur="+(point.getLatitude()-span)
+                +"&norte="+(point.getLatitude()+span)+"&oeste="+(point.getLongitude()-span)
+                +"&este="+(point.getLongitude()+span);
+        int version=++alertRequestVersion;
+        ApiClient.getAuthorized(endpoint,new SessionManager(this).getToken(),new ApiClient.ApiCallback(){
+            public void onSuccess(String response){runOnUiThread(()->{if(version!=alertRequestVersion||isFinishing())return;
+                try{JSONArray array=new JSONArray(response);List<SafetyReport> nearby=new ArrayList<>();
+                    for(int i=0;i<array.length();i++)nearby.add(SafetyReport.fromJson(array.getJSONObject(i)));
+                    notifyNearbyReports(nearby);}catch(Exception ignored){}});}
+            public void onError(String error){}
+        });
+    }
+
+    private void notifyNearbyReports(List<SafetyReport> reports) {
+        if(currentUserPosition==null || reports.isEmpty()) return;
+        if(android.os.Build.VERSION.SDK_INT>=33 && ContextCompat.checkSelfPermission(this,Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED){
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS); return;
+        }
+        String alertHistory=simulatingRoute?"nearby_security_alerts_simulated":"nearby_security_alerts";
+        android.content.SharedPreferences seen=getSharedPreferences(alertHistory,MODE_PRIVATE);
+        NotificationManager manager=getSystemService(NotificationManager.class);
+        String channelId="security_alerts";
+        manager.createNotificationChannel(new NotificationChannel(channelId,"Alertas de seguridad",NotificationManager.IMPORTANCE_HIGH));
+        for(SafetyReport report:reports){
+            if("REFUTADO".equals(report.status))continue;
+            float[] distance=new float[1];Location.distanceBetween(currentUserPosition.getLatitude(),currentUserPosition.getLongitude(),report.latitude,report.longitude,distance);
+            float meters=distance[0];String stage,title;
+            if(meters<=report.radiusMeters){stage="inside";title="Entraste en una zona de riesgo";}
+            else if(meters<=report.radiusMeters+50){stage="50";title="Zona de riesgo a 50 m";}
+            else if(meters<=500){stage="500";title="Zona de riesgo a menos de 500 m";}
+            else continue;
+            String key=report.id+":"+stage;if(seen.getBoolean(key,false))continue;
+            int stageCode="inside".equals(stage)?3:"50".equals(stage)?2:1;
+            PendingIntent intent=PendingIntent.getActivity(this,(int)((report.id*10+stageCode)%Integer.MAX_VALUE),
+                    new Intent(this,MainActivity.class),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+            String detail="inside".equals(stage)?report.eventType+" · radio "+report.radiusMeters+" m":
+                    report.eventType+" · "+(int)meters+" m de tu ubicación";
+            android.app.Notification notification=new android.app.Notification.Builder(this,channelId).setSmallIcon(R.drawable.ic_warning)
+                    .setContentTitle(title).setContentText(detail).setAutoCancel(true).setContentIntent(intent).build();
+            manager.notify((int)((report.id*10+stageCode)%Integer.MAX_VALUE),notification);
+            recordAlertMetric(report.id,stage);
+            android.content.SharedPreferences.Editor editor=seen.edit().putBoolean(key,true);
+            if("inside".equals(stage))editor.putBoolean(report.id+":50",true).putBoolean(report.id+":500",true);
+            else if("50".equals(stage))editor.putBoolean(report.id+":500",true);
+            editor.apply();
+        }
+    }
+
+    private void recordAlertMetric(long reportId,String stage){
+        try{JSONObject body=new JSONObject().put("nivel",stage);ApiClient.postAuthorized(
+                ApiConfig.REPORTS_BASE_URL+"/"+reportId+"/alerta",new SessionManager(this).getToken(),body,
+                new ApiClient.ApiCallback(){public void onSuccess(String response){}public void onError(String error){}});
+        }catch(Exception ignored){}
     }
 
     private void showLimaAndPermissionMessage() {
@@ -918,6 +1275,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     protected void onResume() {
         super.onResume();
         mapView.onResume();
+        uiHandler.removeCallbacks(sampleLocation);
+        uiHandler.postDelayed(sampleLocation, 30000L);
         updateToolbarGreeting(findViewById(R.id.topAppBar));
         updateProfileAvatar();
         if (activeDetailSheet != null && activeDetailSheet.isShowing()) {
@@ -927,6 +1286,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     @Override
     protected void onPause() {
+        uiHandler.removeCallbacks(sampleLocation);
+        if (simulatingRoute) stopSimulation();
         mapView.onPause();
         super.onPause();
     }

@@ -30,7 +30,7 @@ public class ApiClient {
                 conexion.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
                 conexion.setRequestProperty("Accept", "application/json");
                 conexion.setConnectTimeout(10000);
-                conexion.setReadTimeout(10000);
+                conexion.setReadTimeout(30000);
                 conexion.setDoOutput(true);
 
                 OutputStream outputStream = conexion.getOutputStream();
@@ -137,6 +137,45 @@ public class ApiClient {
                 if (connection != null) connection.disconnect();
             }
         }).start();
+    }
+
+    public static void uploadSafetyReport(String endpoint,String token,String eventType,String danger,
+            String description,double latitude,double longitude,int radius,int durationHours,
+            String district,boolean anonymous,byte[] imageBytes,String mimeType,ApiCallback callback){
+        new Thread(()->{HttpURLConnection connection=null;String boundary="AppMapasReport"+System.currentTimeMillis();
+            try{connection=(HttpURLConnection)new URL(endpoint).openConnection();connection.setRequestMethod("POST");
+                connection.setRequestProperty("Authorization","Bearer "+token);connection.setRequestProperty("Accept","application/json");
+                connection.setRequestProperty("Content-Type","multipart/form-data; boundary="+boundary);connection.setConnectTimeout(15000);connection.setReadTimeout(45000);connection.setDoOutput(true);
+                try(BufferedOutputStream output=new BufferedOutputStream(connection.getOutputStream())){
+                    writeFormField(output,boundary,"tipoEvento",eventType);writeFormField(output,boundary,"nivelPeligro",danger);
+                    writeFormField(output,boundary,"descripcion",description);writeFormField(output,boundary,"latitud",Double.toString(latitude));
+                    writeFormField(output,boundary,"longitud",Double.toString(longitude));writeFormField(output,boundary,"radioMetros",Integer.toString(radius));
+                    writeFormField(output,boundary,"duracionHoras",Integer.toString(durationHours));writeFormField(output,boundary,"distrito",district);
+                    writeFormField(output,boundary,"anonimo",Boolean.toString(anonymous));writeImagePart(output,boundary,"imagen","reporte.jpg",imageBytes,mimeType);
+                    output.write(("--"+boundary+"--\r\n").getBytes(StandardCharsets.UTF_8));}
+                entregarRespuesta(connection,callback);
+            }catch(Exception error){callback.onError("No se pudo publicar el reporte. Revisa tu conexión.");}finally{if(connection!=null)connection.disconnect();}
+        }).start();
+    }
+
+    public static void uploadReportComment(String endpoint,String token,String text,byte[] imageBytes,
+            String mimeType,ApiCallback callback){
+        new Thread(()->{HttpURLConnection connection=null;String boundary="AppMapasComment"+System.currentTimeMillis();
+            try{connection=(HttpURLConnection)new URL(endpoint).openConnection();connection.setRequestMethod("POST");
+                connection.setRequestProperty("Authorization","Bearer "+token);connection.setRequestProperty("Accept","application/json");
+                connection.setRequestProperty("Content-Type","multipart/form-data; boundary="+boundary);connection.setConnectTimeout(15000);connection.setReadTimeout(45000);connection.setDoOutput(true);
+                try(BufferedOutputStream output=new BufferedOutputStream(connection.getOutputStream())){
+                    writeFormField(output,boundary,"texto",text);if(imageBytes!=null)writeImagePart(output,boundary,"imagen","comentario.jpg",imageBytes,mimeType);
+                    output.write(("--"+boundary+"--\r\n").getBytes(StandardCharsets.UTF_8));}
+                entregarRespuesta(connection,callback);
+            }catch(Exception error){callback.onError("No se pudo publicar el comentario.");}finally{if(connection!=null)connection.disconnect();}
+        }).start();
+    }
+
+    private static void writeImagePart(BufferedOutputStream output,String boundary,String name,
+                                       String filename,byte[] bytes,String mimeType)throws Exception{
+        output.write(("--"+boundary+"\r\nContent-Disposition: form-data; name=\""+name+"\"; filename=\""+filename+"\"\r\nContent-Type: "+mimeType+"\r\n\r\n").getBytes(StandardCharsets.UTF_8));
+        output.write(bytes);output.write("\r\n".getBytes(StandardCharsets.UTF_8));
     }
 
     private static void writeFormField(BufferedOutputStream output, String boundary,
@@ -263,16 +302,15 @@ public class ApiClient {
                 return json.getString("mensaje");
             }
 
-            if (json.has("error")) {
-                return json.getString("error");
-            }
-
             if (json.has("detail")) {
                 return json.getString("detail");
             }
 
             if (json.has("message")) {
                 return json.getString("message");
+            }
+            if (json.has("error")) {
+                return json.getString("error");
             }
 
         } catch (Exception ignored) {

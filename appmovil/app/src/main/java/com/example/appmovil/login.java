@@ -43,6 +43,7 @@ public class login extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_login);
+        UiInsets.apply(this);
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
@@ -75,6 +76,45 @@ public class login extends AppCompatActivity {
         tvForgotPassword.setOnClickListener(v ->
                 startActivity(new Intent(login.this, RecuperarContrasenaActivity.class))
         );
+        restaurarSesion();
+    }
+
+    private void restaurarSesion() {
+        SessionManager session = new SessionManager(this);
+        if (session.getToken().isEmpty()) return;
+        btnLogin.setEnabled(false);
+        btnLogin.setText("COMPROBANDO SESIÓN…");
+        executorService.execute(() -> {
+            HttpURLConnection connection = null;
+            try {
+                connection = (HttpURLConnection) new URL(ApiConfig.PROFILE_BASE_URL).openConnection();
+                connection.setRequestProperty("Authorization", "Bearer " + session.getToken());
+                connection.setConnectTimeout(10000);
+                connection.setReadTimeout(10000);
+                int status = connection.getResponseCode();
+                if (status >= 200 && status < 300) {
+                    JSONObject profile = new JSONObject(leerRespuesta(connection.getInputStream()));
+                    session.setRole(profile.optString("rol", "USUARIO"));
+                    runOnUiThread(() -> {
+                        if (isFinishing() || isDestroyed()) return;
+                        startActivity(new Intent(this, MainActivity.class)
+                                .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK));
+                    });
+                } else {
+                    if (status == 401) session.clear();
+                    runOnUiThread(() -> {
+                        if (!isFinishing() && !isDestroyed()) mostrarError(status == 401
+                                ? "Tu sesión venció. Ingresa nuevamente."
+                                : "No se pudo verificar la sesión. Vuelve a abrir la app para reintentar.");
+                    });
+                }
+            } catch (Exception error) {
+                runOnUiThread(() -> {
+                    if (!isFinishing() && !isDestroyed()) mostrarError(
+                            "Tu sesión sigue guardada. Revisa la conexión y vuelve a abrir la app.");
+                });
+            } finally { if (connection != null) connection.disconnect(); }
+        });
     }
 
     private void iniciarSesion() {
@@ -100,7 +140,7 @@ public class login extends AppCompatActivity {
                 conexion = (HttpURLConnection) url.openConnection();
                 conexion.setRequestMethod("POST");
                 conexion.setConnectTimeout(10000);
-                conexion.setReadTimeout(10000);
+                conexion.setReadTimeout(30000);
                 conexion.setDoOutput(true);
                 conexion.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
                 conexion.setRequestProperty("Accept", "application/json");
@@ -118,6 +158,19 @@ public class login extends AppCompatActivity {
 
                 if (codigo >= 200 && codigo < 300) {
                     JSONObject json = new JSONObject(respuesta);
+                    String desafioId = json.optString("desafioId", "");
+                    if (!desafioId.isEmpty() && !"null".equals(desafioId)) {
+                        runOnUiThread(() -> {
+                            if (isFinishing() || isDestroyed()) return;
+                            startActivity(new Intent(this, VerificarAccesoActivity.class)
+                                    .putExtra("desafioId", desafioId).putExtra("correo", correo)
+                                    .putExtra("paso", json.optString("paso")));
+                            btnLogin.setEnabled(true);
+                            btnLogin.setText("INGRESAR");
+                            etPassword.setText("");
+                        });
+                        return;
+                    }
                     String nombreCompleto = json.optString("nombreCompleto", "");
                     int idUsuario = json.optInt("idUsuario", 0);
                     String tokenSesion = json.optString("tokenSesion", "");

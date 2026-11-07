@@ -20,13 +20,15 @@ public class AuthService {
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
     private final SesionService sesionService;
+    private final VerificacionAccesoService verificacion;
 
     public AuthService(UsuarioRepository usuarioRepository,
                        PasswordEncoder passwordEncoder,
-                       SesionService sesionService) {
+                       SesionService sesionService, VerificacionAccesoService verificacion) {
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
         this.sesionService = sesionService;
+        this.verificacion = verificacion;
     }
 
     @Transactional
@@ -38,7 +40,8 @@ public class AuthService {
         }
 
         if (usuarioRepository.existsByCorreo(correo)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Ya existe una cuenta con este correo");
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Ya existe una cuenta con este correo. Inicia sesión para continuar o verificarla.");
         }
 
         Usuario usuario = new Usuario();
@@ -50,12 +53,12 @@ public class AuthService {
         usuario.setPasswordHash(passwordEncoder.encode(request.password()));
 
         Usuario guardado = usuarioRepository.save(usuario);
-        return respuesta(guardado, "Cuenta creada correctamente", null);
+        return verificacion.iniciar(guardado);
     }
 
     @Transactional
     public AuthResponse iniciarSesion(LoginRequest request) {
-        Usuario usuario = usuarioRepository.findByCorreo(normalizarCorreo(request.correo()))
+        Usuario usuario = usuarioRepository.bloquearPorCorreo(normalizarCorreo(request.correo()))
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.UNAUTHORIZED, "Correo o contraseña incorrectos"));
 
@@ -64,11 +67,7 @@ public class AuthService {
                     HttpStatus.UNAUTHORIZED, "Correo o contraseña incorrectos");
         }
 
-        return respuesta(
-                usuario,
-                "Inicio de sesión correcto",
-                sesionService.crearSesion(usuario)
-        );
+        return verificacion.iniciar(usuario);
     }
 
     private AuthResponse respuesta(Usuario usuario, String mensaje, String tokenSesion) {
@@ -78,7 +77,7 @@ public class AuthService {
                 mensaje,
                 usuario.getIdUsuario(),
                 usuario.getPrimerNombre() + segundoNombre + " " + usuario.getApellidoPaterno(),
-                tokenSesion
+                tokenSesion, null, "COMPLETO"
         );
     }
 

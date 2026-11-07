@@ -24,6 +24,10 @@ import androidx.core.view.WindowInsetsCompat;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.progressindicator.CircularProgressIndicator;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
+import androidx.appcompat.app.AlertDialog;
 
 import org.json.JSONObject;
 
@@ -54,6 +58,7 @@ public class PerfilActivity extends AppCompatActivity {
     private EditText address;
     private MaterialButton saveButton;
     private MaterialButton changeImageButton;
+    private MaterialButton changePasswordButton;
     private CircularProgressIndicator progress;
     private boolean profileLoaded;
     private int imageRequestVersion;
@@ -68,6 +73,7 @@ public class PerfilActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_perfil);
+        UiInsets.apply(this);
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (view, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
@@ -88,6 +94,7 @@ public class PerfilActivity extends AppCompatActivity {
         birthDate.setOnClickListener(view -> showDatePicker());
         changeImageButton.setOnClickListener(view -> imagePicker.launch("image/*"));
         saveButton.setOnClickListener(view -> saveProfile());
+        changePasswordButton.setOnClickListener(view -> showChangePasswordDialog());
         loadProfile();
     }
 
@@ -98,13 +105,106 @@ public class PerfilActivity extends AppCompatActivity {
         lastName = findViewById(R.id.etLastName);
         secondLastName = findViewById(R.id.etSecondLastName);
         email = findViewById(R.id.etProfileEmail);
+        email.setEnabled(false);
+        email.setContentDescription("Correo verificado de acceso, no editable");
         birthDate = findViewById(R.id.etBirthDate);
         district = findViewById(R.id.etDistrict);
         phone = findViewById(R.id.etPhone);
         address = findViewById(R.id.etAddress);
         saveButton = findViewById(R.id.btnSaveProfile);
         changeImageButton = findViewById(R.id.btnChangeImage);
+        changePasswordButton = findViewById(R.id.btnChangePassword);
         progress = findViewById(R.id.profileProgress);
+    }
+
+    private void showChangePasswordDialog() {
+        View content = getLayoutInflater().inflate(R.layout.dialog_cambiar_contrasena, null);
+        TextInputEditText current = content.findViewById(R.id.etCurrentPassword);
+        TextInputEditText next = content.findViewById(R.id.etNewPassword);
+        TextInputEditText confirm = content.findViewById(R.id.etConfirmNewPassword);
+        TextInputLayout currentLayout = content.findViewById(R.id.tilCurrentPassword);
+        TextInputLayout nextLayout = content.findViewById(R.id.tilNewPassword);
+        TextInputLayout confirmLayout = content.findViewById(R.id.tilConfirmNewPassword);
+
+        AlertDialog dialog = new MaterialAlertDialogBuilder(this)
+                .setTitle("Cambiar contraseña")
+                .setView(content)
+                .setNegativeButton("Cancelar", null)
+                .setPositiveButton("Guardar", null)
+                .create();
+        dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+                .setOnClickListener(view -> {
+                    currentLayout.setError(null);
+                    nextLayout.setError(null);
+                    confirmLayout.setError(null);
+                    String currentValue = editTextValue(current);
+                    String nextValue = editTextValue(next);
+                    String confirmValue = editTextValue(confirm);
+                    if (currentValue.isEmpty()) {
+                        currentLayout.setError("Ingresa tu contraseña actual");
+                        current.requestFocus();
+                        return;
+                    }
+                    if (nextValue.length() < 8) {
+                        nextLayout.setError("Debe tener al menos 8 caracteres");
+                        next.requestFocus();
+                        return;
+                    }
+                    if (nextValue.equals(currentValue)) {
+                        nextLayout.setError("La nueva contraseña debe ser diferente");
+                        next.requestFocus();
+                        return;
+                    }
+                    if (!nextValue.equals(confirmValue)) {
+                        confirmLayout.setError("Las contraseñas no coinciden");
+                        confirm.requestFocus();
+                        return;
+                    }
+                    changePassword(dialog, currentValue, nextValue, confirmValue);
+                }));
+        dialog.show();
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setSoftInputMode(
+                    android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+            dialog.getWindow().setLayout(android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                    android.view.ViewGroup.LayoutParams.WRAP_CONTENT);
+        }
+        android.view.View.OnFocusChangeListener reveal=(view,focused)->{if(focused)view.postDelayed(()->
+                view.requestRectangleOnScreen(new android.graphics.Rect(0,0,view.getWidth(),view.getHeight()),false),200L);};
+        current.setOnFocusChangeListener(reveal);next.setOnFocusChangeListener(reveal);confirm.setOnFocusChangeListener(reveal);
+    }
+
+    private void changePassword(AlertDialog dialog, String current, String next, String confirm) {
+        try {
+            JSONObject body = new JSONObject();
+            body.put("passwordActual", current);
+            body.put("nuevaPassword", next);
+            body.put("confirmarPassword", confirm);
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(false);
+            ApiClient.putAuthorized(ApiConfig.PROFILE_BASE_URL + "/contrasena",
+                    sessionManager.getToken(), body, new ApiClient.ApiCallback() {
+                        @Override public void onSuccess(String response) {
+                            runOnUiThread(() -> {
+                                dialog.dismiss();
+                                Toast.makeText(PerfilActivity.this,
+                                        "Contraseña actualizada correctamente", Toast.LENGTH_LONG).show();
+                            });
+                        }
+                        @Override public void onError(String error) {
+                            runOnUiThread(() -> {
+                                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(true);
+                                showError(error);
+                            });
+                        }
+                    });
+        } catch (Exception error) {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(true);
+            showError("No se pudo preparar el cambio de contraseña");
+        }
+    }
+
+    private String editTextValue(TextInputEditText input) {
+        return input.getText() == null ? "" : input.getText().toString();
     }
 
     private void configureToolbar() {
@@ -408,6 +508,7 @@ public class PerfilActivity extends AppCompatActivity {
         progress.setVisibility(loading ? View.VISIBLE : View.GONE);
         saveButton.setEnabled(!loading && profileLoaded);
         changeImageButton.setEnabled(!loading && profileLoaded);
+        changePasswordButton.setEnabled(!loading && profileLoaded);
     }
 
     private void showError(String message) {

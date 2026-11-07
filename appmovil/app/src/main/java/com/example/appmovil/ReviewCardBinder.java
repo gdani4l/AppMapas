@@ -34,7 +34,7 @@ final class ReviewCardBinder {
         card.findViewById(R.id.btnLikeReview).setOnClickListener(view ->
                 Snackbar.make(card, "Me gusta estará disponible próximamente", Snackbar.LENGTH_SHORT).show());
         card.findViewById(R.id.btnReportReview).setOnClickListener(view ->
-                Snackbar.make(card, "Reportar estará disponible próximamente", Snackbar.LENGTH_SHORT).show());
+                ContentReportDialog.show(activity, card, "RESENA", review.id));
         if (new SessionManager(activity).getUserId() == review.userId) {
             card.findViewById(R.id.reviewOwnerActions).setVisibility(View.VISIBLE);
             card.findViewById(R.id.btnEditReview).setOnClickListener(view -> {

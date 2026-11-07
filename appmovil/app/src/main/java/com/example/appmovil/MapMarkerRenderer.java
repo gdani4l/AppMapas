@@ -11,11 +11,15 @@ import android.graphics.PointF;
 import org.maplibre.geojson.Feature;
 import org.maplibre.geojson.FeatureCollection;
 import org.maplibre.geojson.Point;
+import org.maplibre.geojson.Polygon;
 
 import org.maplibre.android.geometry.LatLng;
 import org.maplibre.android.maps.MapLibreMap;
 import org.maplibre.android.maps.Style;
 import org.maplibre.android.style.layers.CircleLayer;
+import org.maplibre.android.style.layers.FillLayer;
+import org.maplibre.android.style.layers.LineLayer;
+import org.maplibre.android.style.layers.Property;
 import org.maplibre.android.style.layers.SymbolLayer;
 import org.maplibre.android.style.sources.GeoJsonSource;
 
@@ -39,6 +43,9 @@ final class MapMarkerRenderer {
     private static final String PLACE_SOURCE = "app-places-source";
     private static final String LOCATION_SOURCE = "app-location-source";
     private static final String SEARCH_SOURCE = "app-search-source";
+    private static final String REPORT_SOURCE = "app-report-source";
+    private static final String REPORT_FILL_LAYER = "app-report-fill";
+    private static final String REPORT_LINE_LAYER = "app-report-line";
     private final Context context;
     private final MapLibreMap map;
 
@@ -53,15 +60,24 @@ final class MapMarkerRenderer {
             style.addImage("app-icon-" + type, Bitmap.createScaledBitmap(original, pixels, pixels, true));
         }
         style.addImage("app-icon-OTRO", fallback("OTRO", pixels));
+
+        // Las zonas se agregan primero para que los lugares, la ubicación y la búsqueda
+        // queden visualmente por encima y sigan siendo seleccionables dentro de ellas.
+        style.addSource(new GeoJsonSource(REPORT_SOURCE, empty()));
+        style.addLayer(new FillLayer(REPORT_FILL_LAYER, REPORT_SOURCE).withProperties(
+                fillColor(get("color")), fillOpacity(0.30f)));
+        style.addLayer(new LineLayer(REPORT_LINE_LAYER, REPORT_SOURCE).withProperties(
+                lineColor(get("color")), lineWidth(2.5f), lineOpacity(0.9f)));
+
         style.addSource(new GeoJsonSource(PLACE_SOURCE, empty()));
         SymbolLayer placeLayer = new SymbolLayer(PLACE_LAYER, PLACE_SOURCE).withProperties(
-                iconImage(get("icon")), iconSize(1f), iconAnchor("bottom"),
+                iconImage(get("icon")), iconSize(1f), iconAnchor(Property.ICON_ANCHOR_BOTTOM),
                 iconAllowOverlap(true), iconIgnorePlacement(true));
         placeLayer.setMinZoom(PLACE_MIN_ZOOM);
         style.addLayer(placeLayer);
         SymbolLayer labelLayer = new SymbolLayer(PLACE_LABEL_LAYER, PLACE_SOURCE).withProperties(
                 textField(get("name")), textSize(Math.max(11f, PLACE_ICON_SIZE_DP * 0.5f)),
-                textAnchor("top"), textOffset(new Float[]{0f, 0.3f}),
+                textAnchor(Property.TEXT_ANCHOR_TOP), textOffset(new Float[]{0f, 0.3f}),
                 textMaxWidth(9f), textColor(Color.rgb(15, 23, 42)),
                 textHaloColor(Color.WHITE), textHaloWidth(1.5f),
                 textAllowOverlap(true), textIgnorePlacement(true));
@@ -79,6 +95,7 @@ final class MapMarkerRenderer {
         style.addLayer(new CircleLayer("app-search-point", SEARCH_SOURCE).withProperties(
                 circleRadius(9f), circleColor(Color.rgb(13, 148, 136)),
                 circleStrokeColor(Color.WHITE), circleStrokeWidth(3f)));
+
     }
 
     void setPlaces(List<Place> places) {
@@ -95,6 +112,35 @@ final class MapMarkerRenderer {
 
     void setLocation(LatLng position) { setPoint(LOCATION_SOURCE, position); }
     void setSearchPoint(LatLng position) { setPoint(SEARCH_SOURCE, position); }
+
+    void setReports(List<SafetyReport> reports) {
+        List<Feature> features = new ArrayList<>();
+        for (SafetyReport report : reports) {
+            List<Point> ring = new ArrayList<>();
+            double latRadius = report.radiusMeters / 111320d;
+            double lonRadius = report.radiusMeters /
+                    (111320d * Math.max(0.2, Math.cos(Math.toRadians(report.latitude))));
+            for (int i = 0; i <= 48; i++) {
+                double angle = 2d * Math.PI * i / 48d;
+                ring.add(Point.fromLngLat(report.longitude + lonRadius * Math.cos(angle),
+                        report.latitude + latRadius * Math.sin(angle)));
+            }
+            Feature feature = Feature.fromGeometry(Polygon.fromLngLats(
+                    java.util.Collections.singletonList(ring)));
+            feature.addNumberProperty("idReporte", report.id);
+            feature.addStringProperty("color", report.dangerLevel.equals("ALTO") ? "#DC2626" : "#F97316");
+            features.add(feature);
+        }
+        source(REPORT_SOURCE).setGeoJson(FeatureCollection.fromFeatures(features));
+    }
+
+    List<Long> reportsAt(LatLng point) {
+        PointF screen = map.getProjection().toScreenLocation(point);
+        List<Feature> features = map.queryRenderedFeatures(screen, REPORT_FILL_LAYER, REPORT_LINE_LAYER);
+        java.util.LinkedHashSet<Long> ids=new java.util.LinkedHashSet<>();
+        for(Feature feature:features) if(feature.hasProperty("idReporte")) ids.add(feature.getNumberProperty("idReporte").longValue());
+        return new ArrayList<>(ids);
+    }
 
     Long placeAt(LatLng point) {
         PointF screen = map.getProjection().toScreenLocation(point);

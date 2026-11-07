@@ -46,6 +46,7 @@ public class PhotoViewerActivity extends AppCompatActivity {
         if (urls == null || urls.isEmpty()) { finish(); return; }
         index = Math.max(0, Math.min(getIntent().getIntExtra("selected", 0), urls.size() - 1));
         setContentView(R.layout.activity_photo_viewer);
+        UiInsets.apply(this);
         ((TextView) findViewById(R.id.photoViewerTitle)).setText(
                 getIntent().getStringExtra("title"));
         findViewById(R.id.btnClosePhoto).setOnClickListener(view -> finish());

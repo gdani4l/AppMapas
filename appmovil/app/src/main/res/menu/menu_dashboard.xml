@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/actionExportPdf"
+        android:icon="@drawable/ic_pdf"
+        android:title="Exportar PDF"
+        app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/actionRefresh"
+        android:icon="@drawable/ic_refresh"
+        android:title="Actualizar"
+        app:showAsAction="ifRoom" />
+</menu>

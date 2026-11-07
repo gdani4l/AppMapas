@@ -35,6 +35,7 @@ public class RestablecerContrasenaActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_restablecer_contrasena);
+        UiInsets.apply(this);
 
         correo = getIntent().getStringExtra("CORREO_RECUPERACION");
         executorService = Executors.newSingleThreadExecutor();

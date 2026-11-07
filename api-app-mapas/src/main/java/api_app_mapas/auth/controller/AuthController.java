@@ -14,9 +14,24 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+    private final api_app_mapas.auth.service.VerificacionAccesoService verificacion;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, api_app_mapas.auth.service.VerificacionAccesoService verificacion) {
         this.authService = authService;
+        this.verificacion = verificacion;
+    }
+
+    public record ConfirmarRequest(@jakarta.validation.constraints.NotBlank @jakarta.validation.constraints.Size(max=36) String desafioId,
+            @jakarta.validation.constraints.NotBlank @jakarta.validation.constraints.Pattern(regexp="\\d{6}") String codigo) { }
+    public record ReenviarRequest(@jakarta.validation.constraints.NotBlank @jakarta.validation.constraints.Size(max=36) String desafioId) { }
+
+    @PostMapping("/verificacion/confirmar")
+    public AuthResponse confirmar(@Valid @RequestBody ConfirmarRequest request) {
+        return verificacion.confirmar(request.desafioId(),request.codigo());
+    }
+    @PostMapping("/verificacion/reenviar")
+    public AuthResponse reenviar(@Valid @RequestBody ReenviarRequest request) {
+        return verificacion.reenviar(request.desafioId());
     }
 
     @PostMapping("/registro")

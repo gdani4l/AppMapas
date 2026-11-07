@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/accountsRoot" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:background="@color/app_background">
+    <com.google.android.material.appbar.MaterialToolbar android:id="@+id/accountsToolbar" android:layout_width="match_parent" android:layout_height="?attr/actionBarSize" app:title="Cuentas de usuarios" app:navigationIcon="@drawable/ic_arrow_back"/>
+    <com.google.android.material.textfield.TextInputLayout style="@style/Widget.Material3.TextInputLayout.OutlinedBox" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginHorizontal="16dp" android:hint="Buscar por nombre o correo" app:endIconMode="clear_text">
+        <com.google.android.material.textfield.TextInputEditText android:id="@+id/accountsSearch" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="text" android:maxLength="100" android:singleLine="true" android:imeOptions="actionSearch"/>
+    </com.google.android.material.textfield.TextInputLayout>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:paddingHorizontal="12dp">
+        <Spinner android:id="@+id/accountsState" android:layout_width="0dp" android:layout_weight="1" android:layout_height="52dp" android:contentDescription="Filtrar por estado de cuenta"/>
+        <Spinner android:id="@+id/accountsRole" android:layout_width="0dp" android:layout_weight="1" android:layout_height="52dp" android:contentDescription="Filtrar por rol"/>
+    </LinearLayout>
+    <Spinner android:id="@+id/accountsVerified" android:layout_width="match_parent" android:layout_height="48dp" android:layout_marginHorizontal="12dp" android:contentDescription="Filtrar por verificación de correo"/>
+    <TextView android:id="@+id/accountsStatus" android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingHorizontal="16dp" android:paddingVertical="8dp" android:textColor="@color/app_text_secondary" android:accessibilityLiveRegion="polite"/>
+    <ProgressBar android:id="@+id/accountsProgress" android:layout_width="32dp" android:layout_height="32dp" android:layout_gravity="center" android:visibility="gone"/>
+    <androidx.core.widget.NestedScrollView android:id="@+id/accountsScroll" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+        <LinearLayout android:id="@+id/accountsItems" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="16dp"/>
+    </androidx.core.widget.NestedScrollView>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:orientation="horizontal">
+        <com.google.android.material.button.MaterialButton android:id="@+id/accountsPrevious" style="@style/Widget.Material3.Button.TextButton" android:layout_width="wrap_content" android:layout_height="48dp" android:text="Anterior"/>
+        <TextView android:id="@+id/accountsPage" android:layout_width="wrap_content" android:layout_height="wrap_content" android:paddingHorizontal="8dp" android:textColor="@color/app_text_primary"/>
+        <com.google.android.material.button.MaterialButton android:id="@+id/accountsNext" style="@style/Widget.Material3.Button.TextButton" android:layout_width="wrap_content" android:layout_height="48dp" android:text="Siguiente"/>
+    </LinearLayout>
+</LinearLayout>

@@ -5,6 +5,8 @@ import api_app_mapas.lugares.model.Lugar;
 import api_app_mapas.lugares.repository.LugarRepository;
 import api_app_mapas.lugares.repository.CategoriaLugarRepository;
 import api_app_mapas.sesion.service.SesionService;
+import api_app_mapas.lugares.repository.ResenaLugarRepository;
+import api_app_mapas.reportes.repository.ReporteSeguridadRepository;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
@@ -12,6 +14,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.ArrayList;
+import java.util.Comparator;
 
 @RestController
 @RequestMapping("/api/lugares")
@@ -19,12 +23,17 @@ public class LugarController {
     private final LugarRepository lugares;
     private final CategoriaLugarRepository categorias;
     private final SesionService sesiones;
+    private final ResenaLugarRepository resenas;
+    private final ReporteSeguridadRepository reportes;
 
     public LugarController(LugarRepository lugares, CategoriaLugarRepository categorias,
-                           SesionService sesiones) {
+                           SesionService sesiones, ResenaLugarRepository resenas,
+                           ReporteSeguridadRepository reportes) {
         this.lugares = lugares;
         this.categorias = categorias;
         this.sesiones = sesiones;
+        this.resenas = resenas;
+        this.reportes = reportes;
     }
 
     @GetMapping("/categorias")
@@ -77,6 +86,37 @@ public class LugarController {
                 : lugares.buscarPorTextoCercano(texto, latitud, longitud, PageRequest.of(0, 20));
         return resultados
                 .stream().map(LugarResponse::desde).toList();
+    }
+
+    @GetMapping("/recomendados")
+    public List<RecomendacionLugarResponse> recomendados(
+            @RequestParam BigDecimal latitud, @RequestParam BigDecimal longitud,
+            @RequestParam(defaultValue = "SEGURIDAD") String ordenarPor) {
+        if(latitud.abs().compareTo(BigDecimal.valueOf(90))>0 || longitud.abs().compareTo(BigDecimal.valueOf(180))>0)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Coordenadas no válidas");
+        List<RecomendacionLugarResponse> result=new ArrayList<>();
+        for(Lugar lugar:lugares.findAll()) {
+            double rating=java.util.Optional.ofNullable(resenas.promedio(lugar.getIdLugar())).orElse(0.0);
+            long count=resenas.countByLugarIdLugar(lugar.getIdLugar());
+            BigDecimal margin=BigDecimal.valueOf(0.005);
+            long alerts=reportes.contarAlertas(lugar.getLatitud().subtract(margin),lugar.getLatitud().add(margin),
+                    lugar.getLongitud().subtract(margin),lugar.getLongitud().add(margin));
+            double distance=distanceKm(latitud.doubleValue(),longitud.doubleValue(),
+                    lugar.getLatitud().doubleValue(),lugar.getLongitud().doubleValue());
+            result.add(new RecomendacionLugarResponse(LugarResponse.desde(lugar),rating,count,alerts,distance));
+        }
+        Comparator<RecomendacionLugarResponse> comparator;
+        if("CALIFICACION".equalsIgnoreCase(ordenarPor)) comparator=Comparator.comparingDouble(RecomendacionLugarResponse::calificacion).reversed();
+        else if("CERCANIA".equalsIgnoreCase(ordenarPor)) comparator=Comparator.comparingDouble(RecomendacionLugarResponse::distanciaKm);
+        else comparator=Comparator.comparingLong(RecomendacionLugarResponse::alertasCercanas)
+                .thenComparing(Comparator.comparingDouble(RecomendacionLugarResponse::calificacion).reversed());
+        return result.stream().sorted(comparator).limit(10).toList();
+    }
+
+    private double distanceKm(double lat1,double lon1,double lat2,double lon2) {
+        double dLat=Math.toRadians(lat2-lat1),dLon=Math.toRadians(lon2-lon1);
+        double a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(Math.toRadians(lat1))*Math.cos(Math.toRadians(lat2))*Math.sin(dLon/2)*Math.sin(dLon/2);
+        return 6371.0*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
     }
 
     @GetMapping("/{id}")

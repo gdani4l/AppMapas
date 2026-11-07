@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:layout_width="match_parent" android:layout_height="match_parent" android:fillViewport="true" android:background="@color/app_background">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="20dp">
+        <com.google.android.material.appbar.MaterialToolbar android:id="@+id/btnCloseReportComment" android:layout_width="match_parent" android:layout_height="wrap_content" app:navigationIcon="@drawable/ic_arrow_back" app:title="Nuevo comentario" />
+        <com.google.android.material.textfield.TextInputLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="18dp" android:hint="Comentario">
+            <com.google.android.material.textfield.TextInputEditText android:id="@+id/reportCommentText" android:layout_width="match_parent" android:layout_height="120dp" android:gravity="top" android:inputType="textMultiLine" android:maxLength="1000" />
+        </com.google.android.material.textfield.TextInputLayout>
+        <ImageView android:id="@+id/reportCommentImage" android:layout_width="match_parent" android:layout_height="200dp" android:layout_marginTop="12dp" android:contentDescription="Imagen seleccionada" android:scaleType="centerCrop" android:visibility="gone" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/btnSelectReportCommentImage" style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="match_parent" android:layout_height="48dp" android:layout_marginTop="10dp" android:text="AÑADIR UNA IMAGEN (OPCIONAL)" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/btnPublishReportComment" android:layout_width="match_parent" android:layout_height="54dp" android:layout_marginTop="16dp" android:text="PUBLICAR COMENTARIO" app:cornerRadius="14dp" />
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

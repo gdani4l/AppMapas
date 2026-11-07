@@ -10,6 +10,7 @@
     <item android:id="@+id/action_reports" android:title="@string/menu_reports" app:showAsAction="never" />
     <item android:id="@+id/action_notifications" android:title="@string/menu_notifications" app:showAsAction="never" />
     <item android:id="@+id/action_recommendations" android:title="@string/menu_recommendations" app:showAsAction="never" />
-    <item android:id="@+id/action_settings" android:title="@string/menu_settings" app:showAsAction="never" />
+    <item android:id="@+id/action_history" android:title="@string/menu_activity" app:showAsAction="never" />
+    <item android:id="@+id/action_admin" android:title="Panel de administración" android:visible="false" app:showAsAction="never" />
     <item android:id="@+id/action_logout" android:title="@string/menu_logout" app:showAsAction="never" />
 </menu>

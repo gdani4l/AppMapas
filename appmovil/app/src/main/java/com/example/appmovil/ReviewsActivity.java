@@ -21,12 +21,14 @@ public class ReviewsActivity extends AppCompatActivity {
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
         setContentView(R.layout.activity_reviews);
+        UiInsets.apply(this);
         placeId = getIntent().getLongExtra("placeId", 0);
         if (placeId <= 0) { finish(); return; }
         ((MaterialToolbar) findViewById(R.id.reviewsToolbar)).setNavigationOnClickListener(v -> finish());
         ((TextView) findViewById(R.id.reviewsPlaceName)).setText(getIntent().getStringExtra("placeName"));
         list = findViewById(R.id.reviewsList);
-        findViewById(R.id.btnMoreReviews).setOnClickListener(v -> loadNext());
+        findViewById(R.id.btnMoreReviews).setOnClickListener(v -> {page++;loadPage();});
+        findViewById(R.id.btnPreviousReviews).setOnClickListener(v -> {if(page>0){page--;loadPage();}});
         findViewById(R.id.btnReviewFromList).setOnClickListener(v ->
                 ReviewRepository.mine(this, placeId, new ReviewRepository.Callback<ReviewRepository.Review>() {
                     @Override public void success(ReviewRepository.Review review) {
@@ -55,18 +57,19 @@ public class ReviewsActivity extends AppCompatActivity {
         page = 0;
         total = 0;
         list.removeAllViews();
-        loadNext();
+        loadPage();
     }
 
-    private void loadNext() {
+    private void loadPage() {
         if (loading) return;
         loading = true;
-        ReviewRepository.list(this, placeId, page, 10,
+        ReviewRepository.list(this, placeId, page, 5,
                 new ReviewRepository.Callback<ReviewRepository.Page>() {
                     @Override public void success(ReviewRepository.Page result) {
                         runOnUiThread(() -> {
                             loading = false;
                             total = result.total;
+                            list.removeAllViews();
                             ((TextView) findViewById(R.id.reviewsSummary)).setText(total == 0
                                     ? "Sin calificaciones todavía"
                                     : String.format(Locale.getDefault(), "★ %.1f/5 · %d reseñas",
@@ -76,10 +79,11 @@ public class ReviewsActivity extends AppCompatActivity {
                                         placeId, review, ReviewsActivity.this::refresh,
                                         () -> refreshOnResume = true));
                             }
-                            page++;
                             findViewById(R.id.reviewsEmpty).setVisibility(total == 0 ? View.VISIBLE : View.GONE);
-                            findViewById(R.id.btnMoreReviews).setVisibility(
-                                    list.getChildCount() < total ? View.VISIBLE : View.GONE);
+                            int pages=(int)Math.ceil(total/5.0);findViewById(R.id.reviewsPager).setVisibility(pages>1?View.VISIBLE:View.GONE);
+                            findViewById(R.id.btnPreviousReviews).setEnabled(page>0);
+                            findViewById(R.id.btnMoreReviews).setEnabled(page+1<pages);
+                            ((TextView)findViewById(R.id.reviewsPageLabel)).setText((page+1)+" / "+Math.max(1,pages));
                         });
                     }
                     @Override public void error(String message) {

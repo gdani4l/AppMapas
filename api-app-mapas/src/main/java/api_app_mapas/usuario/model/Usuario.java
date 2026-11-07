@@ -7,6 +7,14 @@ import java.time.LocalDate;
 @Entity
 @Table(name = "usuarios")
 public class Usuario {
+    @Column(name = "correo_verificado", nullable = false)
+    private boolean correoVerificado;
+    @Column(name = "activa", nullable = false)
+    private boolean activa = true;
+    public boolean isCorreoVerificado() { return correoVerificado; }
+    public void setCorreoVerificado(boolean value) { correoVerificado = value; }
+    public boolean isActiva() { return activa; }
+    public void setActiva(boolean value) { activa = value; }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -63,6 +71,11 @@ public class Usuario {
     private String imagenPublicId;
     public String getImagenPublicId() { return imagenPublicId; }
     public void setImagenPublicId(String value) { this.imagenPublicId = value; }
+
+    @Column(name = "rol", nullable = false, length = 20)
+    private String rol = "USUARIO";
+    public String getRol() { return rol; }
+    public void setRol(String value) { rol = value; }
 
     public Usuario() {
     }

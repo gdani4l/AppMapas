@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto" android:layout_width="match_parent" android:layout_height="wrap_content" android:background="@drawable/bg_bottom_sheet">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="20dp">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical">
+            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                <TextView android:id="@+id/tvReportDetailType" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="@color/app_text_primary" android:textSize="22sp" android:textStyle="bold" />
+                <TextView android:id="@+id/tvReportDetailDanger" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#DC2626" android:textSize="14sp" android:textStyle="bold" />
+            </LinearLayout>
+            <ImageButton android:id="@+id/btnCloseReportDetail" android:layout_width="44dp" android:layout_height="44dp" android:background="?attr/selectableItemBackgroundBorderless" android:contentDescription="Cerrar" android:src="@android:drawable/ic_menu_close_clear_cancel" app:tint="@color/app_text_secondary" />
+        </LinearLayout>
+        <TextView android:id="@+id/tvReportDetailMeta" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:textColor="@color/app_text_secondary" />
+        <ImageView android:id="@+id/reportDetailImage" android:layout_width="match_parent" android:layout_height="210dp" android:layout_marginTop="12dp" android:contentDescription="Imagen del reporte" android:scaleType="centerCrop" android:visibility="gone" />
+        <TextView android:id="@+id/tvReportDetailDescription" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:textColor="@color/app_text_primary" android:textSize="16sp" />
+        <TextView android:id="@+id/tvReportValidation" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" android:background="@color/app_primary_soft" android:padding="12dp" android:textColor="@color/app_primary_dark" android:textStyle="bold" />
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:orientation="horizontal">
+            <com.google.android.material.button.MaterialButton android:id="@+id/btnReportTrue" style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:text="CONFIRMAR" app:strokeColor="@color/app_secondary" />
+            <com.google.android.material.button.MaterialButton android:id="@+id/btnReportFalse" style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="0dp" android:layout_height="48dp" android:layout_marginStart="8dp" android:layout_weight="1" android:text="ES FALSO" app:strokeColor="#F97316" />
+        </LinearLayout>
+        <com.google.android.material.button.MaterialButton android:id="@+id/btnFlagSafetyReport" style="@style/Widget.Material3.Button.TextButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="end" android:text="REPORTAR AL ADMINISTRADOR" android:textColor="#DC2626" />
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="Comentarios" android:textColor="@color/app_text_primary" android:textSize="18sp" android:textStyle="bold" />
+        <LinearLayout android:id="@+id/reportComments" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" />
+        <TextView android:id="@+id/tvNoReportComments" android:layout_width="wrap_content" android:layout_height="wrap_content" android:paddingVertical="12dp" android:text="Aún no hay comentarios." android:textColor="@color/app_text_secondary" />
+        <LinearLayout android:id="@+id/reportCommentPager" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:orientation="horizontal" android:visibility="gone">
+            <com.google.android.material.button.MaterialButton android:id="@+id/btnPreviousReportComments" style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="0dp" android:layout_height="46dp" android:layout_weight="1" android:text="ANTERIORES" />
+            <TextView android:id="@+id/tvReportCommentPage" android:layout_width="wrap_content" android:layout_height="wrap_content" android:padding="12dp" android:textColor="@color/app_text_secondary" />
+            <com.google.android.material.button.MaterialButton android:id="@+id/btnNextReportComments" style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="0dp" android:layout_height="46dp" android:layout_weight="1" android:text="SIGUIENTES" />
+        </LinearLayout>
+        <com.google.android.material.textfield.TextInputLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Añade un comentario">
+            <com.google.android.material.textfield.TextInputEditText android:id="@+id/etReportComment" android:layout_width="match_parent" android:layout_height="wrap_content" android:maxLength="1000" />
+        </com.google.android.material.textfield.TextInputLayout>
+        <com.google.android.material.button.MaterialButton android:id="@+id/btnSendReportComment" android:layout_width="match_parent" android:layout_height="48dp" android:layout_marginTop="8dp" android:text="COMENTAR" app:backgroundTint="@color/app_primary" app:cornerRadius="14dp" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/btnReportCommentWithImage" style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="match_parent" android:layout_height="48dp" android:layout_marginTop="8dp" android:text="COMENTAR CON IMAGEN" />
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

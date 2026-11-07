@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.button.MaterialButtonToggleGroup xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto" android:id="@+id/adminReportTabGroup"
+    android:layout_width="match_parent" android:layout_height="48dp"
+    android:visibility="gone" app:selectionRequired="true" app:singleSelection="true">
+    <com.google.android.material.button.MaterialButton android:id="@+id/adminReportTabPending"
+        style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="0dp"
+        android:layout_height="48dp" android:layout_weight="1" android:checked="true"
+        android:text="Pendientes" android:textAllCaps="false" android:textSize="12sp" />
+    <com.google.android.material.button.MaterialButton android:id="@+id/adminReportTabActive"
+        style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="0dp"
+        android:layout_height="48dp" android:layout_weight="1"
+        android:text="Activos" android:textAllCaps="false" android:textSize="12sp" />
+    <com.google.android.material.button.MaterialButton android:id="@+id/adminReportTabExpired"
+        style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="0dp"
+        android:layout_height="48dp" android:layout_weight="1"
+        android:text="Caducados" android:textAllCaps="false" android:textSize="12sp" />
+</com.google.android.material.button.MaterialButtonToggleGroup>

@@ -69,6 +69,10 @@ public class SesionService {
         }
 
         sesion.setUltimoUso(LocalDateTime.now());
+        if (!sesion.getUsuario().isActiva() || !sesion.getUsuario().isCorreoVerificado()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
+                    "Verifica tu correo e inicia sesión nuevamente, o contacta al administrador si tu cuenta está suspendida");
+        }
         return sesion.getUsuario();
     }
 

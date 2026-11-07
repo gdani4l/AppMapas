@@ -35,6 +35,7 @@ public class RecuperarContrasenaActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_recuperar_contrasena);
+        UiInsets.apply(this);
 
         executorService = Executors.newSingleThreadExecutor();
 

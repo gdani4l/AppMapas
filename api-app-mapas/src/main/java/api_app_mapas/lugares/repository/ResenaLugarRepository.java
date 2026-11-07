@@ -9,11 +9,16 @@ import java.util.Optional;
 import java.util.List;
 
 public interface ResenaLugarRepository extends JpaRepository<ResenaLugar, Long> {
+    @Query("select r from ResenaLugar r join fetch r.lugar where r.usuario.idUsuario = :userId order by r.fechaCreacion desc")
+    List<ResenaLugar> findByUsuario_IdUsuarioOrderByFechaCreacionDesc(Integer userId);
     @Query(value = "select r from ResenaLugar r join fetch r.usuario where r.lugar.idLugar = :lugarId",
            countQuery = "select count(r) from ResenaLugar r where r.lugar.idLugar = :lugarId")
     Page<ResenaLugar> listar(Long lugarId, Pageable pageable);
 
     Optional<ResenaLugar> findByLugarIdLugarAndUsuarioIdUsuario(Long lugarId, Integer usuarioId);
+
+    @Query("select r from ResenaLugar r join fetch r.lugar l left join fetch l.categoria where r.id = :id")
+    Optional<ResenaLugar> findWithLugarById(Long id);
 
     long countByLugarIdLugar(Long lugarId);
 

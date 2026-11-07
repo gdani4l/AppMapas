@@ -47,6 +47,7 @@ public class registro extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_registro);
+        UiInsets.apply(this);
 
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
@@ -122,7 +123,7 @@ public class registro extends AppCompatActivity {
                 conexion = (HttpURLConnection) url.openConnection();
                 conexion.setRequestMethod("POST");
                 conexion.setConnectTimeout(10000);
-                conexion.setReadTimeout(10000);
+                conexion.setReadTimeout(30000);
                 conexion.setDoOutput(true);
                 conexion.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
                 conexion.setRequestProperty("Accept", "application/json");
@@ -139,13 +140,17 @@ public class registro extends AppCompatActivity {
                 );
 
                 if (codigo >= 200 && codigo < 300) {
+                    JSONObject json = new JSONObject(respuesta);
+                    String desafioId = json.optString("desafioId", "");
+                    if (desafioId.isEmpty() || "null".equals(desafioId)) {
+                        runOnUiThread(() -> mostrarError("No se recibió la solicitud de verificación."));
+                        return;
+                    }
                     runOnUiThread(() -> {
-                        Toast.makeText(
-                                this,
-                                "Cuenta creada. Ahora inicia sesión.",
-                                Toast.LENGTH_LONG
-                        ).show();
-                        startActivity(new Intent(this, login.class));
+                        if (isFinishing() || isDestroyed()) return;
+                        startActivity(new Intent(this, VerificarAccesoActivity.class)
+                                .putExtra("desafioId", desafioId).putExtra("correo", correo)
+                                .putExtra("paso", "CORREO"));
                         finish();
                     });
                 } else {

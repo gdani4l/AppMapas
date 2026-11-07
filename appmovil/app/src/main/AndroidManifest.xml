@@ -4,6 +4,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:allowBackup="true"
@@ -25,6 +26,16 @@
         <activity android:name=".PhotoViewerActivity" android:exported="false" />
         <activity android:name=".ReviewEditorActivity" android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".ReportCommentActivity" android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".NuevoReporteActivity" android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".FeedActivity" android:exported="false" />
+        <activity android:name=".AdminActivity" android:exported="false" />
+        <activity android:name=".HeatmapActivity" android:exported="false" />
+        <activity android:name=".BusinessIntelligenceActivity" android:exported="false" />
+        <activity android:name=".VerificarAccesoActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".GestionCuentasActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />
 
         <activity
             android:name=".CategoriasActivity"

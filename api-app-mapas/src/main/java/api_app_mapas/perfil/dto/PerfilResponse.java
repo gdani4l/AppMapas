@@ -13,6 +13,7 @@ public record PerfilResponse(
         String distrito,
         String telefono,
         String direccion,
-        String imagenPerfilUrl
+        String imagenPerfilUrl,
+        String rol
 ) {
 }

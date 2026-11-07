@@ -31,9 +31,13 @@ final class PlaceDetailSheet {
         ((TextView) content.findViewById(R.id.tvPlaceDetailDescription)).setText(
                 place.description.isEmpty() ? "Sin descripción todavía." : place.description);
         content.findViewById(R.id.btnClosePlaceDetail).setOnClickListener(view -> dialog.dismiss());
-        content.findViewById(R.id.btnReportPlace).setOnClickListener(view ->
-                Snackbar.make(content, "Reportar lugar estará disponible próximamente",
-                        Snackbar.LENGTH_SHORT).show());
+        TextView placeAction=content.findViewById(R.id.btnReportPlace);
+        if("ADMIN".equalsIgnoreCase(new SessionManager(activity).getRole())) {
+            placeAction.setText("Eliminar lugar");
+            placeAction.setOnClickListener(view -> new com.google.android.material.dialog.MaterialAlertDialogBuilder(activity)
+                    .setTitle("Eliminar lugar").setMessage("También se eliminarán todas sus reseñas e imágenes asociadas.")
+                    .setNegativeButton("Cancelar",null).setPositiveButton("Eliminar",(d,w)->deleteAsAdmin()).show());
+        } else placeAction.setOnClickListener(view -> ContentReportDialog.show(activity, content, "LUGAR", place.id));
         content.findViewById(R.id.btnAllReviews).setOnClickListener(view -> {
             refreshOnResume = true;
             activity.startActivity(new Intent(activity, ReviewsActivity.class)
@@ -145,5 +149,13 @@ final class PlaceDetailSheet {
                 activity.runOnUiThread(() -> Snackbar.make(content, message, Snackbar.LENGTH_LONG).show());
             }
         });
+    }
+
+    private void deleteAsAdmin() {
+        ApiClient.deleteAuthorized(ApiConfig.ADMIN_BASE_URL+"/lugares/"+place.id,
+                new SessionManager(activity).getToken(),new ApiClient.ApiCallback(){
+                    public void onSuccess(String response){activity.runOnUiThread(()->{dialog.dismiss();if(activity instanceof MainActivity)((MainActivity)activity).refreshMapContent();Snackbar.make(activity.findViewById(android.R.id.content),"Lugar eliminado",Snackbar.LENGTH_LONG).show();});}
+                    public void onError(String error){activity.runOnUiThread(()->Snackbar.make(content,error,Snackbar.LENGTH_LONG).show());}
+                });
     }
 }

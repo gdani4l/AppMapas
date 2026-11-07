@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:fillViewport="true" android:background="@color/app_background">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:padding="20dp">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical">
+            <ImageButton android:id="@+id/btnCloseReport" android:layout_width="44dp" android:layout_height="44dp"
+                android:background="?attr/selectableItemBackgroundBorderless" android:contentDescription="Cerrar"
+                android:src="@android:drawable/ic_menu_close_clear_cancel" app:tint="@color/app_text_primary" />
+            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:paddingStart="10dp">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Reportar zona de riesgo" android:textColor="@color/app_text_primary" android:textSize="22sp" android:textStyle="bold" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Describe lo ocurrido y el alcance aproximado" android:textColor="@color/app_text_secondary" android:textSize="14sp" />
+            </LinearLayout>
+        </LinearLayout>
+        <TextView style="@style/TextAppearance.Material3.LabelLarge" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="22dp" android:text="Tipo de incidente" />
+        <Spinner android:id="@+id/spReportEvent" android:layout_width="match_parent" android:layout_height="54dp" android:background="@drawable/bg_input" android:paddingHorizontal="14dp" />
+        <TextView style="@style/TextAppearance.Material3.LabelLarge" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="14dp" android:text="Nivel de peligro" />
+        <Spinner android:id="@+id/spReportDanger" android:layout_width="match_parent" android:layout_height="54dp" android:background="@drawable/bg_input" android:paddingHorizontal="14dp" />
+        <TextView style="@style/TextAppearance.Material3.LabelLarge" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="14dp" android:text="Duración del reporte" />
+        <Spinner android:id="@+id/spReportDuration" android:layout_width="match_parent" android:layout_height="54dp" android:background="@drawable/bg_input" android:paddingHorizontal="14dp" />
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="18dp" app:cardBackgroundColor="@color/white"
+            app:cardCornerRadius="16dp" app:strokeColor="@color/app_border" app:strokeWidth="1dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:padding="16dp">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Alcance de la zona" android:textColor="@color/app_text_primary"
+                    android:textSize="17sp" android:textStyle="bold" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp" android:text="El círculo se dibujará alrededor del punto seleccionado."
+                    android:textColor="@color/app_text_secondary" android:textSize="13sp" />
+                <com.example.appmovil.RadiusPreviewView android:id="@+id/radiusPreview"
+                    android:layout_width="match_parent" android:layout_height="104dp"
+                    android:layout_marginTop="4dp" android:contentDescription="Vista previa del radio" />
+                <com.google.android.material.button.MaterialButtonToggleGroup
+                    android:id="@+id/reportRadiusGroup" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:layout_marginTop="4dp"
+                    app:selectionRequired="true" app:singleSelection="true">
+                    <com.google.android.material.button.MaterialButton android:id="@+id/btnRadius10"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1"
+                        android:text="10 m" android:textAllCaps="false" />
+                    <com.google.android.material.button.MaterialButton android:id="@+id/btnRadius25"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1"
+                        android:text="25 m" android:textAllCaps="false" />
+                    <com.google.android.material.button.MaterialButton android:id="@+id/btnRadius50"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1"
+                        android:text="50 m" android:textAllCaps="false" />
+                </com.google.android.material.button.MaterialButtonToggleGroup>
+                <TextView android:id="@+id/tvRadiusHelp" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:layout_marginTop="10dp"
+                    android:textColor="@color/app_text_secondary" android:textSize="13sp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+        <com.google.android.material.textfield.TextInputLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" android:hint="¿Qué ocurrió?">
+            <com.google.android.material.textfield.TextInputEditText android:id="@+id/etReportDescription" android:layout_width="match_parent" android:layout_height="130dp" android:gravity="top" android:inputType="textMultiLine" android:maxLength="2000" />
+        </com.google.android.material.textfield.TextInputLayout>
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="16dp" android:text="Evidencia fotográfica obligatoria"
+            android:textColor="@color/app_text_primary" android:textStyle="bold" />
+        <ImageView android:id="@+id/reportImagePreview" android:layout_width="match_parent"
+            android:layout_height="190dp" android:layout_marginTop="8dp" android:background="@drawable/bg_input"
+            android:contentDescription="Vista previa de la evidencia" android:scaleType="centerCrop" android:visibility="gone" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/btnSelectReportImage"
+            style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="match_parent"
+            android:layout_height="48dp" android:layout_marginTop="8dp" android:text="SELECCIONAR IMAGEN" />
+        <CheckBox android:id="@+id/cbAnonymousReport" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="Publicar de forma anónima" android:textColor="@color/app_text_primary" />
+        <TextView android:id="@+id/tvReportCoordinates" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:textColor="@color/app_text_secondary" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/btnSaveReport" android:layout_width="match_parent" android:layout_height="56dp" android:layout_marginTop="20dp" android:text="PUBLICAR REPORTE" android:textColor="@color/white" app:backgroundTint="#DC2626" app:cornerRadius="14dp" />
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

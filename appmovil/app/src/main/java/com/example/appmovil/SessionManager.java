@@ -11,6 +11,7 @@ public class SessionManager {
     private static final String KEY_EMAIL = "email";
     private static final String KEY_TOKEN = "token";
     private static final String KEY_PROFILE_IMAGE = "profile_image";
+    private static final String KEY_ROLE = "role";
 
     private final SharedPreferences preferences;
 
@@ -52,6 +53,8 @@ public class SessionManager {
         }
         editor.apply();
     }
+    public void setRole(String role) { preferences.edit().putString(KEY_ROLE,role == null ? "USUARIO" : role).apply(); }
+    public String getRole() { return preferences.getString(KEY_ROLE,"USUARIO"); }
 
     public void clear() {
         preferences.edit().clear().apply();

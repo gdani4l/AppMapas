@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/adminRoot" android:layout_width="match_parent"
+    android:layout_height="match_parent" android:background="@color/app_background">
+    <com.google.android.material.appbar.MaterialToolbar android:id="@+id/adminToolbar"
+        android:layout_width="0dp" android:layout_height="wrap_content" android:background="@color/white"
+        app:navigationIcon="@drawable/ic_arrow_back" app:title="Administración"
+        app:titleTextColor="@color/app_text_primary" app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
+    <include android:id="@+id/adminShortcuts" layout="@layout/view_admin_shortcuts"
+        android:layout_width="0dp" android:layout_height="wrap_content"
+        app:layout_constraintTop_toBottomOf="@id/adminToolbar"
+        app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
+    <androidx.core.widget.NestedScrollView android:id="@+id/adminScroll"
+        android:layout_width="0dp" android:layout_height="0dp" android:fillViewport="true"
+        app:layout_constraintTop_toBottomOf="@id/adminShortcuts" app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent">
+        <FrameLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:padding="16dp">
+            <include android:id="@+id/adminReportTabs" layout="@layout/view_admin_report_tabs"
+                android:layout_width="match_parent" android:layout_height="48dp" />
+            <LinearLayout android:id="@+id/adminSummaryPanel" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:orientation="vertical">
+                <TextView android:id="@+id/adminSummaryTitle" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Resumen de la plataforma"
+                    android:textColor="@color/app_text_primary" android:textSize="22sp" android:textStyle="bold" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp" android:text="Indicadores generales de contenido, comunidad y recorridos."
+                    android:textColor="@color/app_text_secondary" android:textSize="14sp" />
+                <LinearLayout android:id="@+id/adminStats" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:layout_marginTop="16dp"
+                    android:background="@drawable/bg_dashboard_card" android:orientation="vertical" android:padding="16dp">
+                    <ProgressBar android:layout_width="36dp" android:layout_height="36dp" android:layout_gravity="center" />
+                </LinearLayout>
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp" android:text="Participación y recorridos"
+                    android:textStyle="bold" android:textSize="20sp" android:textColor="@color/app_text_primary" />
+                <LinearLayout android:id="@+id/adminUsageStats" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:layout_marginTop="12dp"
+                    android:background="@drawable/bg_dashboard_card" android:orientation="vertical" android:padding="16dp">
+                    <ProgressBar android:layout_width="36dp" android:layout_height="36dp" android:layout_gravity="center" />
+                </LinearLayout>
+                <com.google.android.material.button.MaterialButton android:id="@+id/adminHeatmap"
+                    android:layout_width="match_parent" android:layout_height="52dp" android:layout_marginTop="12dp"
+                    android:text="Ver mapa de zonas visitadas" app:cornerRadius="14dp" />
+                <com.google.android.material.button.MaterialButton android:layout_width="match_parent"
+                    android:layout_height="52dp" android:onClick="openBusinessIntelligence"
+                    android:text="Análisis de comunidad" style="@style/Widget.Material3.Button.OutlinedButton"
+                    app:cornerRadius="14dp" />
+                <com.google.android.material.button.MaterialButton android:id="@+id/adminAccounts"
+                    android:layout_width="match_parent" android:layout_height="52dp"
+                    android:text="Gestionar cuentas de usuarios" android:onClick="openAccounts"
+                    style="@style/Widget.Material3.Button.OutlinedButton" app:cornerRadius="14dp" />
+            </LinearLayout>
+            <LinearLayout android:id="@+id/adminPendingPanel" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:layout_marginTop="60dp"
+                android:orientation="vertical" android:visibility="gone">
+                <TextView android:id="@+id/adminPendingTitle" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Contenido pendiente de revisión"
+                    android:textColor="@color/app_text_primary" android:textSize="22sp" android:textStyle="bold" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp" android:text="Revisa el motivo antes de descartar la denuncia o eliminar el contenido."
+                    android:textColor="@color/app_text_secondary" android:textSize="14sp" />
+                <TextView android:id="@+id/adminEmpty" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:layout_marginTop="16dp" android:padding="24dp"
+                    android:background="@drawable/bg_dashboard_card" android:text="No hay denuncias pendientes."
+                    android:textColor="@color/app_text_secondary" android:visibility="gone" />
+                <LinearLayout android:id="@+id/adminItems" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:layout_marginTop="16dp" android:orientation="vertical" />
+            </LinearLayout>
+            <LinearLayout android:id="@+id/adminReportsPanel" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:layout_marginTop="60dp"
+                android:orientation="vertical" android:visibility="gone">
+                <TextView android:id="@+id/adminReportsTitle" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Reportes de seguridad activos"
+                    android:textColor="@color/app_text_primary" android:textSize="22sp" android:textStyle="bold" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp" android:text="Solo se muestran zonas cuya fecha de caducidad aún no terminó."
+                    android:textColor="@color/app_text_secondary" android:textSize="14sp" />
+                <LinearLayout android:id="@+id/adminSafetyReports" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:layout_marginTop="16dp" android:orientation="vertical" />
+            </LinearLayout>
+            <LinearLayout android:id="@+id/adminExpiredPanel" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:layout_marginTop="60dp"
+                android:orientation="vertical" android:visibility="gone">
+                <TextView android:id="@+id/adminExpiredTitle" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Reportes caducados"
+                    android:textColor="@color/app_text_primary" android:textSize="22sp" android:textStyle="bold" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp" android:text="Historial de zonas que dejaron de mostrarse en el mapa."
+                    android:textColor="@color/app_text_secondary" android:textSize="14sp" />
+                <LinearLayout android:id="@+id/adminExpiredReports" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:layout_marginTop="16dp" android:orientation="vertical" />
+            </LinearLayout>
+            <LinearLayout android:id="@+id/adminPlacesPanel" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:orientation="vertical" android:visibility="gone">
+                <TextView android:id="@+id/adminPlacesTitle" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:text="Lugares registrados"
+                    android:textColor="@color/app_text_primary" android:textSize="22sp" android:textStyle="bold" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp" android:text="Abre un lugar en el mapa o elimínalo si incumple las reglas."
+                    android:textColor="@color/app_text_secondary" android:textSize="14sp" />
+                <LinearLayout android:id="@+id/adminPlaces" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:layout_marginTop="16dp" android:orientation="vertical" />
+            </LinearLayout>
+        </FrameLayout>
+    </androidx.core.widget.NestedScrollView>
+</androidx.constraintlayout.widget.ConstraintLayout>

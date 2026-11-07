@@ -8,6 +8,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 public interface LugarRepository extends JpaRepository<Lugar, Long> {
+    List<Lugar> findByCreador_IdUsuarioOrderByFechaCreacionDesc(Integer userId);
     @Query("select l from Lugar l where l.latitud between :sur and :norte " +
             "and l.longitud between :oeste and :este " +
             "and (:tipo is null or l.tipo = :tipo) order by l.idLugar desc")

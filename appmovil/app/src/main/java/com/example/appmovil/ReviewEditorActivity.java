@@ -42,6 +42,7 @@ public class ReviewEditorActivity extends AppCompatActivity {
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
         setContentView(R.layout.activity_review_editor);
+        UiInsets.apply(this);
         placeId = getIntent().getLongExtra("placeId", 0);
         editing = getIntent().getBooleanExtra("editing", false);
         if (placeId <= 0) { finish(); return; }

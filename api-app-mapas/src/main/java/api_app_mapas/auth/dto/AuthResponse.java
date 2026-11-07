@@ -5,6 +5,8 @@ public record AuthResponse(
         String mensaje,
         Integer idUsuario,
         String nombreCompleto,
-        String tokenSesion
+        String tokenSesion,
+        String desafioId,
+        String paso
 ) {
 }

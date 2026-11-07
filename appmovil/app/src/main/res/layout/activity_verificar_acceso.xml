@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/verificationRoot" android:orientation="vertical" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/app_background">
+    <com.google.android.material.appbar.MaterialToolbar android:id="@+id/verificationToolbar" android:layout_width="match_parent" android:layout_height="?attr/actionBarSize" app:title="Verifica tu acceso" app:navigationIcon="@drawable/ic_arrow_back"/>
+    <androidx.core.widget.NestedScrollView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:fillViewport="true">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="24dp">
+            <TextView android:id="@+id/verificationTitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Revisa tu correo" android:textSize="26sp" android:textStyle="bold" android:textColor="@color/app_text_primary"/>
+            <TextView android:id="@+id/verificationDescription" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:lineSpacingExtra="4dp" android:textColor="@color/app_text_secondary" android:textSize="16sp"/>
+            <com.google.android.material.textfield.TextInputLayout android:id="@+id/verificationCodeLayout" style="@style/Widget.Material3.TextInputLayout.OutlinedBox" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="24dp" android:hint="Código de seis dígitos">
+                <com.google.android.material.textfield.TextInputEditText android:id="@+id/verificationCode" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="number" android:maxLength="6" android:textSize="24sp" android:letterSpacing="0.2" android:imeOptions="actionDone" android:saveEnabled="false"/>
+            </com.google.android.material.textfield.TextInputLayout>
+            <TextView android:id="@+id/verificationStatus" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="El código vence en 10 minutos. Revisa también spam." android:textColor="@color/app_text_secondary" android:accessibilityLiveRegion="polite"/>
+            <com.google.android.material.button.MaterialButton android:id="@+id/verificationConfirm" android:layout_width="match_parent" android:layout_height="56dp" android:layout_marginTop="20dp" android:text="Verificar y entrar" app:cornerRadius="14dp"/>
+            <com.google.android.material.button.MaterialButton android:id="@+id/verificationResend" style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="match_parent" android:layout_height="56dp" android:text="Reenviar código" app:cornerRadius="14dp"/>
+            <com.google.android.material.button.MaterialButton android:id="@+id/verificationBack" style="@style/Widget.Material3.Button.TextButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp" android:text="Volver al inicio de sesión"/>
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+</LinearLayout>
