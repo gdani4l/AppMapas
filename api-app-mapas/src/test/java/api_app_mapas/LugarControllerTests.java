@@ -30,7 +30,7 @@ class LugarControllerTests {
         String token = sesiones.crearSesion(usuario);
         var lugar = controller.crear("Bearer " + token,
                 new LugarRequest("HOTEL", "Hotel de prueba HU23", "Descripción breve",
-                        "Av. de prueba 123", new BigDecimal("-12.0464000"),
+                        "Av. de prueba 123", "Cercado de Lima", new BigDecimal("-12.0464000"),
                         new BigDecimal("-77.0428000")));
         assertNotNull(lugar.idLugar());
         assertEquals(lugar.idLugar(), controller.detalle(lugar.idLugar()).idLugar());

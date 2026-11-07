@@ -7,6 +7,9 @@ import api_app_mapas.lugares.repository.CategoriaLugarRepository;
 import api_app_mapas.sesion.service.SesionService;
 import api_app_mapas.lugares.repository.ResenaLugarRepository;
 import api_app_mapas.reportes.repository.ReporteSeguridadRepository;
+import api_app_mapas.mapa.service.MapEventService;
+import api_app_mapas.ubicacion.DistrictNormalizer;
+import api_app_mapas.lugares.service.LugarUsoService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
@@ -25,15 +28,20 @@ public class LugarController {
     private final SesionService sesiones;
     private final ResenaLugarRepository resenas;
     private final ReporteSeguridadRepository reportes;
+    private final MapEventService mapEvents;
+    private final LugarUsoService uso;
 
     public LugarController(LugarRepository lugares, CategoriaLugarRepository categorias,
                            SesionService sesiones, ResenaLugarRepository resenas,
-                           ReporteSeguridadRepository reportes) {
+                           ReporteSeguridadRepository reportes, MapEventService mapEvents,
+                           LugarUsoService uso) {
         this.lugares = lugares;
         this.categorias = categorias;
         this.sesiones = sesiones;
         this.resenas = resenas;
         this.reportes = reportes;
+        this.mapEvents = mapEvents;
+        this.uso = uso;
     }
 
     @GetMapping("/categorias")
@@ -88,6 +96,18 @@ public class LugarController {
                 .stream().map(LugarResponse::desde).toList();
     }
 
+    @PostMapping("/{id}/uso/{tipo}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void registrarUso(@RequestHeader("Authorization") String authorization,
+                             @PathVariable Long id, @PathVariable String tipo) {
+        sesiones.obtenerUsuario(authorization);
+        if (!tipo.equals("VISTA") && !tipo.equals("SELECCION_BUSQUEDA"))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Evento no válido");
+        Lugar lugar=lugares.findById(id).orElseThrow(() ->
+                new ResponseStatusException(HttpStatus.NOT_FOUND,"Lugar no encontrado"));
+        uso.registrarLugar(tipo,lugar);
+    }
+
     @GetMapping("/recomendados")
     public List<RecomendacionLugarResponse> recomendados(
             @RequestParam BigDecimal latitud, @RequestParam BigDecimal longitud,
@@ -137,10 +157,13 @@ public class LugarController {
         lugar.setNombre(request.nombre().trim());
         lugar.setDescripcion(limpiar(request.descripcion()));
         lugar.setDireccion(limpiar(request.direccion()));
+        lugar.setDistrito(DistrictNormalizer.normalize(request.distrito()));
         lugar.setLatitud(request.latitud());
         lugar.setLongitud(request.longitud());
         lugar.setCreador(sesiones.obtenerUsuario(authorization));
-        return LugarResponse.desde(lugares.save(lugar));
+        Lugar guardado = lugares.save(lugar);
+        mapEvents.publishAfterCommit("LUGAR");
+        return LugarResponse.desde(guardado);
     }
 
     private String limpiar(String texto) {

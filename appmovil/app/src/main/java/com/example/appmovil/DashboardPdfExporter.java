@@ -72,17 +72,23 @@ final class DashboardPdfExporter {
                     + "Los recorridos de prueba se integran en las métricas generales.");
 
             writer.lineChart("Nuevos usuarios · últimos 30 días", data.optJSONArray("registros"));
-            writer.dataset("Usuarios por distrito declarado", data.optJSONArray("distritos"));
+            writer.horizontalBarChart("Usuarios por distrito declarado", data.optJSONArray("distritos"));
             writer.barChart("Distribución de valoraciones", data.optJSONArray("valoraciones"));
-            writer.dataset("Incidentes por tipo", data.optJSONArray("incidentes"));
-            writer.dataset("Reportes de seguridad por distrito", data.optJSONArray("reportesDistritos"));
+            writer.horizontalBarChart("Incidentes por tipo", data.optJSONArray("incidentes"));
+            writer.horizontalBarChart("Reportes de seguridad por distrito", data.optJSONArray("reportesDistritos"));
             writer.lineChart("Horarios con más reportes", data.optJSONArray("reportesHoras"));
             writer.barChart("Días con más reportes", data.optJSONArray("reportesDias"));
-            writer.dataset("Incidente predominante en cada distrito", data.optJSONArray("incidentesDistrito"));
+            writer.stackedBarChart("Incidentes por tipo y distrito", data.optJSONArray("incidentesDistritoApilado"));
             writer.donutChart("Reportes confirmados, refutados y pendientes", data.optJSONArray("validacion"));
-            writer.dataset("Alertas recibidas por distrito", data.optJSONArray("zonasAlertas"));
-            writer.dataset("Reportes en zonas reincidentes por distrito", data.optJSONArray("zonasReincidentes"));
-            writer.dataset("Distritos con mayor actividad", data.optJSONArray("actividadDistritos"));
+            writer.horizontalBarChart("Alertas recibidas por distrito", data.optJSONArray("zonasAlertas"));
+            writer.horizontalBarChart("Reportes en zonas reincidentes por distrito", data.optJSONArray("zonasReincidentes"));
+            writer.horizontalBarChart("Distritos con mayor actividad", data.optJSONArray("actividadDistritos"));
+
+            writer.section("Uso de lugares");
+            writer.horizontalBarChart("Lugares más vistos", data.optJSONArray("lugaresMasVistos"));
+            writer.horizontalBarChart("Lugares más buscados", data.optJSONArray("lugaresMasBuscados"));
+            writer.horizontalBarChart("Lugares más reseñados", data.optJSONArray("lugaresMasResenados"));
+            writer.horizontalBarChart("Mejor valorados · puntuación sobre 50", data.optJSONArray("lugaresMejorValorados"));
 
             writer.write(context, destination);
         }
@@ -246,6 +252,85 @@ final class DashboardPdfExporter {
                 paint.setColor(chartColor(i));canvas.drawCircle(lx,ly,5,paint);paint.setColor(text);paint.setTextSize(10.5f);paint.setTypeface(Typeface.DEFAULT);
                 canvas.drawText(trimLabel(label,24)+"  "+value,lx+13,ly+4,paint);ly+=27;}
             y+=needed+8;
+        }
+
+        void stackedBarChart(String title,JSONArray rows){
+            if(rows==null||rows.length()==0){section(title);paragraph("Todavía no hay datos para este indicador.");return;}
+            java.util.LinkedHashSet<String> districtSet=new java.util.LinkedHashSet<>(),typeSet=new java.util.LinkedHashSet<>();
+            for(int i=0;i<rows.length();i++){JSONObject row=rows.optJSONObject(i);if(row!=null){districtSet.add(row.optString("distrito"));typeSet.add(row.optString("tipo"));}}
+            java.util.List<String> districts=new java.util.ArrayList<>(districtSet),types=new java.util.ArrayList<>(typeSet);long[][] values=new long[districts.size()][types.size()];long[] totals=new long[districts.size()];long max=1;
+            for(int i=0;i<rows.length();i++){JSONObject row=rows.optJSONObject(i);if(row==null)continue;int d=districts.indexOf(row.optString("distrito")),t=types.indexOf(row.optString("tipo"));if(d>=0&&t>=0)values[d][t]=row.optLong("valor");}
+            for(int d=0;d<districts.size();d++){for(int t=0;t<types.size();t++)totals[d]+=values[d][t];max=Math.max(max,totals[d]);}
+            float needed=260+Math.max(0,(float)Math.ceil(types.size()/3d)-1)*18;ensure(needed+45);section(title);
+            float left=MARGIN+28,right=WIDTH-MARGIN-8,top=y+8,bottom=top+145;paint.setColor(Color.rgb(248,250,252));canvas.drawRoundRect(MARGIN,y,right+8,y+needed,10,10,paint);
+            paint.setStrokeWidth(1);paint.setTextSize(8);for(int i=0;i<=4;i++){float gy=bottom-(bottom-top)*i/4f;paint.setColor(Color.rgb(226,232,240));canvas.drawLine(left,gy,right,gy,paint);paint.setColor(Color.rgb(100,116,139));canvas.drawText(String.valueOf(Math.round(max*i/4f)),MARGIN+3,gy+3,paint);}
+            float slot=(right-left)/Math.max(1,districts.size()),bar=Math.min(48,slot*.6f);
+            for(int d=0;d<districts.size();d++){float center=left+slot*(d+.5f),cursor=bottom;for(int t=0;t<types.size();t++){float h=(bottom-top)*values[d][t]/(float)max;if(h<=0)continue;paint.setColor(chartColor(t));canvas.drawRect(center-bar/2,cursor-h,center+bar/2,cursor,paint);cursor-=h;}paint.setTextSize(9);paint.setColor(text);String total=String.valueOf(totals[d]);canvas.drawText(total,center-paint.measureText(total)/2,cursor-5,paint);paint.setTextSize(8);paint.setColor(Color.rgb(71,85,105));String label=trimLabel(districts.get(d),14);canvas.drawText(label,center-paint.measureText(label)/2,bottom+17,paint);}
+            float legendY=bottom+45;for(int i=0;i<types.size();i++){int column=i%3,row=i/3;float x=MARGIN+12+column*(CONTENT_WIDTH/3f),ly=legendY+row*18;paint.setColor(chartColor(i));canvas.drawCircle(x,ly,4,paint);paint.setColor(text);paint.setTextSize(8.5f);canvas.drawText(trimLabel(types.get(i),18),x+9,ly+3,paint);}
+            y+=needed+8;
+        }
+
+        void horizontalBarChart(String title, JSONArray values) {
+            if (values == null || values.length() == 0) {
+                section(title);
+                paragraph("Todavía no hay datos para este indicador.");
+                return;
+            }
+            int count = Math.min(values.length(), 12);
+            float needed = Math.max(205, 68 + count * 29f);
+            ensure(needed + 45);
+            section(title);
+            float cardTop = y;
+            float labelWidth = 136f;
+            float left = MARGIN + labelWidth;
+            float right = WIDTH - MARGIN - 30f;
+            float top = cardTop + 27f;
+            float bottom = top + count * 29f;
+            long max = maximum(values);
+
+            paint.setColor(Color.rgb(248, 250, 252));
+            canvas.drawRoundRect(MARGIN, cardTop, WIDTH - MARGIN, cardTop + needed, 10, 10, paint);
+
+            paint.setStrokeWidth(1f);
+            paint.setTextSize(8f);
+            paint.setTypeface(Typeface.DEFAULT);
+            for (int tick = 0; tick <= 4; tick++) {
+                float x = left + (right - left) * tick / 4f;
+                paint.setColor(Color.rgb(226, 232, 240));
+                canvas.drawLine(x, top - 8, x, bottom + 3, paint);
+                paint.setColor(Color.rgb(100, 116, 139));
+                String label = String.valueOf(Math.round(max * tick / 4f));
+                canvas.drawText(label, x - paint.measureText(label) / 2, bottom + 18, paint);
+            }
+
+            float barHeight = 15f;
+            for (int i = 0; i < count; i++) {
+                JSONObject item = values.optJSONObject(i);
+                String label = chartLabel(item == null ? "" : item.optString("etiqueta"));
+                long value = item == null ? 0 : Math.max(0, item.optLong("valor"));
+                float centerY = top + i * 29f + 9f;
+                float barWidth = (right - left) * value / (float) max;
+
+                paint.setTextSize(9f);
+                paint.setColor(Color.rgb(71, 85, 105));
+                paint.setTypeface(Typeface.DEFAULT);
+                canvas.drawText(trimToWidth(label, labelWidth - 14), MARGIN + 9, centerY + 3, paint);
+
+                paint.setColor(Color.rgb(226, 232, 240));
+                canvas.drawRoundRect(left, centerY - barHeight / 2, right,
+                        centerY + barHeight / 2, 7, 7, paint);
+                if (value > 0) {
+                    paint.setColor(chartColor(i));
+                    canvas.drawRoundRect(left, centerY - barHeight / 2,
+                            Math.max(left + 3, left + barWidth), centerY + barHeight / 2, 7, 7, paint);
+                }
+                paint.setColor(text);
+                paint.setTextSize(9f);
+                paint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
+                String number = String.valueOf(value);
+                canvas.drawText(number, right + 7, centerY + 3, paint);
+            }
+            y = cardTop + needed + 8;
         }
 
         private long maximum(JSONArray values){long max=1;for(int i=0;i<values.length();i++){JSONObject item=values.optJSONObject(i);if(item!=null)max=Math.max(max,item.optLong("valor"));}return max;}

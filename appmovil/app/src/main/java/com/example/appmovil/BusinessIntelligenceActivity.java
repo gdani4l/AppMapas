@@ -93,7 +93,7 @@ public class BusinessIntelligenceActivity extends AppCompatActivity {
         section("Seguridad de la comunidad");
         chart("Reportes de seguridad por distrito",data.getJSONArray("reportesDistritos"), DashboardChartView.Mode.HORIZONTAL_BAR);
         chart("Incidentes por tipo",data.getJSONArray("incidentes"), DashboardChartView.Mode.HORIZONTAL_BAR);
-        chart("Incidente predominante en cada distrito",data.getJSONArray("incidentesDistrito"), DashboardChartView.Mode.HORIZONTAL_BAR);
+        stackedChart("Incidentes por tipo y distrito",data.getJSONArray("incidentesDistritoApilado"));
         chart("Estado de validación de los reportes",data.getJSONArray("validacion"), DashboardChartView.Mode.DONUT);
         chart("Horarios con más reportes",data.getJSONArray("reportesHoras"), DashboardChartView.Mode.LINE);
         chart("Días con más reportes",data.getJSONArray("reportesDias"), DashboardChartView.Mode.BAR);
@@ -102,6 +102,11 @@ public class BusinessIntelligenceActivity extends AppCompatActivity {
         section("Participación y contenido");
         chart("Distribución de valoraciones",data.getJSONArray("valoraciones"), DashboardChartView.Mode.BAR);
         chart("Distritos con mayor actividad de usuarios",data.getJSONArray("actividadDistritos"), DashboardChartView.Mode.HORIZONTAL_BAR);
+        section("Uso de lugares");
+        chart("Lugares más vistos",data.getJSONArray("lugaresMasVistos"), DashboardChartView.Mode.HORIZONTAL_BAR);
+        chart("Lugares más buscados",data.getJSONArray("lugaresMasBuscados"), DashboardChartView.Mode.HORIZONTAL_BAR);
+        chart("Lugares más reseñados",data.getJSONArray("lugaresMasResenados"), DashboardChartView.Mode.HORIZONTAL_BAR);
+        chart("Mejor valorados · puntuación sobre 50",data.getJSONArray("lugaresMejorValorados"), DashboardChartView.Mode.HORIZONTAL_BAR);
     }
 
     private void exportPdf() {
@@ -129,6 +134,15 @@ public class BusinessIntelligenceActivity extends AppCompatActivity {
         chart.setMode(mode);
         chart.setData(labels, values);
         card.addView(chart,new LinearLayout.LayoutParams(-1,-2));
+    }
+    private void stackedChart(String title,JSONArray rows)throws Exception{
+        LinearLayout card=card();text(card,title,18,true);
+        if(rows.length()==0){text(card,"Todavía no hay datos para este indicador.",14,false);return;}
+        java.util.LinkedHashSet<String> districtSet=new java.util.LinkedHashSet<>(),typeSet=new java.util.LinkedHashSet<>();
+        for(int i=0;i<rows.length();i++){JSONObject row=rows.getJSONObject(i);districtSet.add(row.optString("distrito"));typeSet.add(row.optString("tipo"));}
+        List<String> districts=new ArrayList<>(districtSet),types=new ArrayList<>(typeSet);long[][] values=new long[districts.size()][types.size()];
+        for(int i=0;i<rows.length();i++){JSONObject row=rows.getJSONObject(i);int d=districts.indexOf(row.optString("distrito")),t=types.indexOf(row.optString("tipo"));if(d>=0&&t>=0)values[d][t]=row.optLong("valor");}
+        StackedBarChartView chart=new StackedBarChartView(this);chart.setData(districts,types,values);card.addView(chart,new LinearLayout.LayoutParams(-1,-2));
     }
     private LinearLayout card(){
         LinearLayout card=new LinearLayout(this);card.setOrientation(LinearLayout.VERTICAL);

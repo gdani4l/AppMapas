@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS sesiones_usuario (
     FOREIGN KEY (id_usuario) REFERENCES usuarios (id_usuario) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
--- Migración aditiva: conserva perfiles_usuario como respaldo histórico; la app usa usuarios.
+-- Migración aditiva: copia el perfil legado a usuarios y elimina la tabla anterior.
 SET @perfil_ddl = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'usuarios' AND column_name = 'fecha_nacimiento') = 0, 'ALTER TABLE usuarios ADD COLUMN fecha_nacimiento date DEFAULT NULL', 'SELECT 1');
 PREPARE perfil_stmt FROM @perfil_ddl;
 EXECUTE perfil_stmt;
@@ -77,6 +77,7 @@ CREATE TABLE IF NOT EXISTS lugares (
   nombre varchar(120) NOT NULL,
   descripcion varchar(1000) DEFAULT NULL,
   direccion varchar(255) DEFAULT NULL,
+  distrito varchar(100) DEFAULT NULL,
   latitud decimal(10,7) NOT NULL,
   longitud decimal(10,7) NOT NULL,
   id_usuario_creador int unsigned NOT NULL,
@@ -94,6 +95,40 @@ SET @categoria_ddl = IF((SELECT COUNT(*) FROM information_schema.table_constrain
 PREPARE categoria_stmt FROM @categoria_ddl;
 EXECUTE categoria_stmt;
 DEALLOCATE PREPARE categoria_stmt;
+
+SET @lugar_ddl = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'lugares' AND column_name = 'distrito') = 0, 'ALTER TABLE lugares ADD COLUMN distrito varchar(100) DEFAULT NULL AFTER direccion', 'SELECT 1');
+PREPARE lugar_stmt FROM @lugar_ddl;
+EXECUTE lugar_stmt;
+DEALLOCATE PREPARE lugar_stmt;
+
+CREATE TABLE IF NOT EXISTS eventos_uso_lugar (
+  id_evento bigint unsigned NOT NULL AUTO_INCREMENT,
+  tipo_evento varchar(30) NOT NULL,
+  id_lugar bigint unsigned DEFAULT NULL,
+  nombre_lugar varchar(120) DEFAULT NULL,
+  categoria varchar(20) DEFAULT NULL,
+  origen varchar(20) NOT NULL DEFAULT 'APP',
+  fecha_creacion timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id_evento),
+  KEY idx_uso_lugar_tipo_fecha (tipo_evento, fecha_creacion),
+  KEY idx_uso_lugar_lugar (id_lugar, tipo_evento),
+  KEY idx_uso_lugar_categoria (categoria, tipo_evento)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+SET @uso_ddl = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'eventos_uso_lugar' AND column_name = 'origen') = 0, 'ALTER TABLE eventos_uso_lugar ADD COLUMN origen varchar(20) NOT NULL DEFAULT ''APP'' AFTER categoria', 'SELECT 1');
+PREPARE uso_stmt FROM @uso_ddl;
+EXECUTE uso_stmt;
+DEALLOCATE PREPARE uso_stmt;
+
+SET @uso_ddl = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'eventos_uso_lugar' AND column_name = 'termino_busqueda') > 0, 'ALTER TABLE eventos_uso_lugar DROP COLUMN termino_busqueda', 'SELECT 1');
+PREPARE uso_stmt FROM @uso_ddl;
+EXECUTE uso_stmt;
+DEALLOCATE PREPARE uso_stmt;
+
+SET @uso_ddl = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'eventos_uso_lugar' AND column_name = 'cantidad_resultados') > 0, 'ALTER TABLE eventos_uso_lugar DROP COLUMN cantidad_resultados', 'SELECT 1');
+PREPARE uso_stmt FROM @uso_ddl;
+EXECUTE uso_stmt;
+DEALLOCATE PREPARE uso_stmt;
 
 SET @perfil_ddl = IF((SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'usuarios' AND column_name = 'distrito') = 0, 'ALTER TABLE usuarios ADD COLUMN distrito varchar(100) DEFAULT NULL', 'SELECT 1');
 PREPARE perfil_stmt FROM @perfil_ddl;
@@ -129,10 +164,13 @@ SET @perfil_ddl = IF((SELECT COUNT(*) FROM information_schema.tables WHERE table
 PREPARE perfil_stmt FROM @perfil_ddl;
 EXECUTE perfil_stmt;
 DEALLOCATE PREPARE perfil_stmt;
-SET @perfil_ddl = IF((SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'perfiles_usuario') > 0, 'RENAME TABLE perfiles_usuario TO perfiles_usuario_respaldo', 'SELECT 1');
+SET @perfil_ddl = IF((SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'perfiles_usuario') > 0, 'DROP TABLE perfiles_usuario', 'SELECT 1');
 PREPARE perfil_stmt FROM @perfil_ddl;
 EXECUTE perfil_stmt;
 DEALLOCATE PREPARE perfil_stmt;
+
+-- Versiones anteriores dejaban esta tabla vacía o con una copia ya migrada.
+DROP TABLE IF EXISTS perfiles_usuario_respaldo;
 
 CREATE TABLE IF NOT EXISTS resenas_lugar (
   id_resena bigint unsigned NOT NULL AUTO_INCREMENT,

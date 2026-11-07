@@ -25,6 +25,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/notificaciones/**").permitAll()
                         .requestMatchers("/api/admin/**").permitAll()
                         .requestMatchers("/api/recorridos/**").permitAll()
+                        .requestMatchers("/api/mapa/**").permitAll()
                         .requestMatchers("/error").permitAll()
                         .anyRequest().authenticated()
                 )

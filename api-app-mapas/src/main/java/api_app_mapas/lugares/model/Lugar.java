@@ -28,6 +28,9 @@ public class Lugar {
     @Column(length = 255)
     private String direccion;
 
+    @Column(length = 100)
+    private String distrito;
+
     @Column(nullable = false, precision = 10, scale = 7)
     private java.math.BigDecimal latitud;
 
@@ -51,6 +54,8 @@ public class Lugar {
     public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
     public String getDireccion() { return direccion; }
     public void setDireccion(String direccion) { this.direccion = direccion; }
+    public String getDistrito() { return distrito; }
+    public void setDistrito(String distrito) { this.distrito = distrito; }
     public java.math.BigDecimal getLatitud() { return latitud; }
     public void setLatitud(java.math.BigDecimal latitud) { this.latitud = latitud; }
     public java.math.BigDecimal getLongitud() { return longitud; }

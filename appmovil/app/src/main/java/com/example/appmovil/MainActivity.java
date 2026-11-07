@@ -113,6 +113,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private LinearLayout searchSuggestions;
     private Runnable pendingSearch;
     private Runnable pendingPlacesLoad;
+    private final Runnable pendingRealtimePlacesRefresh = () -> loadVisiblePlaces(true);
+    private final Runnable pendingRealtimeReportsRefresh = () -> loadVisibleReports(true);
+    private MapEventStream mapEventStream;
     private int suggestionVersion;
     private boolean suppressSuggestions;
     private final Map<String, List<SearchResult>> searchCache = new HashMap<>();
@@ -169,7 +172,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 }
                 selectedTypes.clear();
                 ArrayList<String> codes = result.getData().getStringArrayListExtra("categoryCodes");
-                if (codes != null) selectedTypes.addAll(codes);
+                if (codes != null) {
+                    selectedTypes.addAll(codes);
+                }
                 updateQuickFilters();
                 loadVisiblePlaces(true);
             });
@@ -233,6 +238,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         searchExecutor = Executors.newSingleThreadExecutor();
         profileImageExecutor = Executors.newSingleThreadExecutor();
+        mapEventStream = new MapEventStream(ApiConfig.MAP_EVENTS_URL);
         configureToolbar();
         configurePlaceholderActions();
         refreshProfileFromServer();
@@ -649,7 +655,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     private void showPlaceDetail(Place place) {
+        trackPlaceUsage(place.id,"VISTA");
         activeDetailSheet = PlaceDetailSheet.show(this, place);
+    }
+
+    private void trackPlaceUsage(long placeId,String type) {
+        ApiClient.postAuthorized(ApiConfig.PLACES_BASE_URL+"/"+placeId+"/uso/"+type,
+                new SessionManager(this).getToken(),new JSONObject(),new ApiClient.ApiCallback(){
+                    @Override public void onSuccess(String response) { }
+                    @Override public void onError(String error) { }
+                });
     }
 
     private void showReportSelection(List<Long> ids) {
@@ -1046,6 +1061,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     private void showFoundPlace(Place place) {
+        trackPlaceUsage(place.id,"SELECCION_BUSQUEDA");
         if (!selectedTypes.isEmpty() && !selectedTypes.contains(place.type)) {
             selectedTypes.clear();
             updateQuickFilters();
@@ -1282,11 +1298,20 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         if (activeDetailSheet != null && activeDetailSheet.isShowing()) {
             activeDetailSheet.refreshAfterChangesOnResume();
         }
+        mapEventStream.start(new SessionManager(this).getToken(), contentType -> runOnUiThread(() -> {
+            Runnable refresh = "LUGAR".equals(contentType)
+                    ? pendingRealtimePlacesRefresh : pendingRealtimeReportsRefresh;
+            uiHandler.removeCallbacks(refresh);
+            uiHandler.postDelayed(refresh, 350L);
+        }));
     }
 
     @Override
     protected void onPause() {
         uiHandler.removeCallbacks(sampleLocation);
+        uiHandler.removeCallbacks(pendingRealtimePlacesRefresh);
+        uiHandler.removeCallbacks(pendingRealtimeReportsRefresh);
+        if (mapEventStream != null) mapEventStream.stop();
         if (simulatingRoute) stopSimulation();
         mapView.onPause();
         super.onPause();
@@ -1312,6 +1337,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     @Override
     protected void onDestroy() {
+        if (mapEventStream != null) mapEventStream.stop();
         if (pendingPlacesLoad != null) uiHandler.removeCallbacks(pendingPlacesLoad);
         if (pendingSearch != null) uiHandler.removeCallbacks(pendingSearch);
         if (searchExecutor != null) {

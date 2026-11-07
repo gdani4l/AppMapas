@@ -28,7 +28,7 @@ class ResenaLugarTests {
         var usuario = usuarios.findAll().stream().findFirst().orElseThrow();
         String bearer = "Bearer " + sesiones.crearSesion(usuario);
         long lugarId = lugares.crear(bearer, new LugarRequest("HOTEL", "Prueba de reseñas",
-                "Prueba", "Calle de prueba", new BigDecimal("-12.0464000"),
+                "Prueba", "Calle de prueba", "Cercado de Lima", new BigDecimal("-12.0464000"),
                 new BigDecimal("-77.0428000"))).idLugar();
 
         assertEquals(0, resenas.listar(lugarId, 0, 3).total());

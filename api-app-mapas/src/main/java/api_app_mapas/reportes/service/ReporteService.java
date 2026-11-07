@@ -20,6 +20,8 @@ import java.util.List;
 import java.time.LocalDateTime;
 import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
+import api_app_mapas.mapa.service.MapEventService;
+import api_app_mapas.ubicacion.DistrictNormalizer;
 
 @Service
 public class ReporteService {
@@ -32,13 +34,16 @@ public class ReporteService {
     private final ResenaLugarRepository resenas;
     private final NotificacionRepository notificaciones;
     private final CloudinaryService imagenes;
+    private final MapEventService mapEvents;
     public ReporteService(ReporteSeguridadRepository reportes, ComentarioReporteRepository comentarios,
                            VotoReporteRepository votos, ReporteContenidoRepository contenido, SesionService sesiones,
                            LugarRepository lugares, ResenaLugarRepository resenas,
-                           NotificacionRepository notificaciones, CloudinaryService imagenes) {
+                           NotificacionRepository notificaciones, CloudinaryService imagenes,
+                           MapEventService mapEvents) {
         this.reportes=reportes; this.comentarios=comentarios; this.votos=votos; this.contenido=contenido;
         this.sesiones=sesiones; this.lugares=lugares; this.resenas=resenas; this.notificaciones=notificaciones;
         this.imagenes=imagenes;
+        this.mapEvents=mapEvents;
     }
     public ReporteSeguridad obtener(Long id) { return reportes.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"Reporte no encontrado")); }
     public Usuario usuario(String auth) { return sesiones.obtenerUsuario(auth); }
@@ -49,8 +54,9 @@ public class ReporteService {
         r.setRadioMetros(request.radioMetros()); r.setAnonimo(request.anonimo()); r.setEstadoValidacion("PENDIENTE");
         r.setConfirmaciones(0); r.setRefutaciones(0);
         r.setFechaExpiracion(LocalDateTime.now().plusHours(request.duracionHoras()));
-        r.setDistrito(limpiar(request.distrito()));
-        return ReporteResponse.desde(reportes.save(r), true);
+        r.setDistrito(DistrictNormalizer.normalize(request.distrito()));
+        ReporteSeguridad guardado=reportes.save(r);mapEvents.publishAfterCommit("REPORTE");
+        return ReporteResponse.desde(guardado, true);
     }
     @Transactional public ReporteResponse crearConImagen(String auth, CrearReporteRequest request,
                                                            MultipartFile imagen) throws IOException {
@@ -62,8 +68,9 @@ public class ReporteService {
             r.setDescripcion(request.descripcion().trim()); r.setLatitud(request.latitud()); r.setLongitud(request.longitud());
             r.setRadioMetros(request.radioMetros()); r.setAnonimo(request.anonimo()); r.setEstadoValidacion("PENDIENTE");
             r.setConfirmaciones(0); r.setRefutaciones(0); r.setFechaExpiracion(LocalDateTime.now().plusHours(request.duracionHoras()));
-            r.setDistrito(limpiar(request.distrito())); r.setImagenUrl(subida.url()); r.setImagenPublicId(subida.publicId());
-            return ReporteResponse.desde(reportes.saveAndFlush(r),true);
+            r.setDistrito(DistrictNormalizer.normalize(request.distrito())); r.setImagenUrl(subida.url()); r.setImagenPublicId(subida.publicId());
+            ReporteSeguridad guardado=reportes.saveAndFlush(r);mapEvents.publishAfterCommit("REPORTE");
+            return ReporteResponse.desde(guardado,true);
         } catch(RuntimeException error) { imagenes.eliminarImagen(subida.publicId()); throw error; }
     }
     @Transactional public ComentarioReporteResponse comentar(String auth, Long id, TextoRequest request) {
@@ -125,7 +132,7 @@ public class ReporteService {
         if(reporte.getUsuario()==null || !reporte.getUsuario().getIdUsuario().equals(usuario.getIdUsuario()))
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,"Solo puedes eliminar tus propios reportes");
         comentarios.findByReporte_IdReporteOrderByFechaCreacionAsc(id).forEach(c->imagenes.eliminarImagen(c.getImagenPublicId()));
-        String imagen=reporte.getImagenPublicId();reportes.delete(reporte);reportes.flush();imagenes.eliminarImagen(imagen);
+        String imagen=reporte.getImagenPublicId();reportes.delete(reporte);reportes.flush();imagenes.eliminarImagen(imagen);mapEvents.publishAfterCommit("REPORTE");
     }
 
     private void validarImagen(MultipartFile imagen,boolean requerida){

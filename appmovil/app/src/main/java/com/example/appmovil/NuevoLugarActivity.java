@@ -29,6 +29,8 @@ public class NuevoLugarActivity extends AppCompatActivity {
     private MaterialButton saveButton;
     private double latitude;
     private double longitude;
+    private volatile String district = "";
+    private volatile boolean districtResolving = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,6 +62,7 @@ public class NuevoLugarActivity extends AppCompatActivity {
         saveButton = findViewById(R.id.btnSavePlace);
         ((TextView) findViewById(R.id.tvPlaceCoordinates)).setText(String.format(
                 Locale.US, "%.6f, %.6f", latitude, longitude));
+        loadDistrict();
         bindCategories();
         saveButton.setOnClickListener(view -> savePlace());
         ApiClient.getAuthorized(ApiConfig.PLACES_BASE_URL + "/categorias",
@@ -97,6 +100,10 @@ public class NuevoLugarActivity extends AppCompatActivity {
     }
 
     private void savePlace() {
+        if (districtResolving) {
+            Snackbar.make(findViewById(R.id.main), "Espera mientras identificamos el distrito", Snackbar.LENGTH_SHORT).show();
+            return;
+        }
         if (selectedCategory == null) {
             type.setError("Selecciona una categoría");
             type.requestFocus();
@@ -114,6 +121,7 @@ public class NuevoLugarActivity extends AppCompatActivity {
                     .put("nombre", placeName)
                     .put("direccion", address.getText().toString().trim())
                     .put("descripcion", description.getText().toString().trim())
+                    .put("distrito", district)
                     .put("latitud", latitude)
                     .put("longitud", longitude);
             saveButton.setEnabled(false);
@@ -139,6 +147,16 @@ public class NuevoLugarActivity extends AppCompatActivity {
         } catch (Exception error) {
             saveButton.setEnabled(true);
         }
+    }
+
+    private void loadDistrict() {
+        new Thread(() -> {
+            String value = DistrictResolver.resolve(this, latitude, longitude);
+            district = value;
+            districtResolving = false;
+            runOnUiThread(() -> ((TextView) findViewById(R.id.tvPlaceDistrict)).setText(
+                    value.isBlank() ? "Distrito no identificado" : value));
+        }, "place-district").start();
     }
 
     private void showLoadError() {

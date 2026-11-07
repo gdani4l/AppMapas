@@ -16,4 +16,5 @@ public final class ApiConfig {
     public static final String REPORTS_BASE_URL = ip + "/api/reportes";
     public static final String NOTIFICATIONS_BASE_URL = ip + "/api/notificaciones";
     public static final String ADMIN_BASE_URL = ip + "/api/admin";
+    public static final String MAP_EVENTS_URL = ip + "/api/mapa/eventos";
 }
